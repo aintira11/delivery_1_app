@@ -1,4 +1,5 @@
 import 'package:delivery_1_app/pages/login.dart';
+import 'package:delivery_1_app/pages/member_rider.dart';
 import 'package:delivery_1_app/pages/membership_user.dart';
 import 'package:flutter/material.dart';
 
@@ -92,7 +93,11 @@ class _HomePageState extends State<HomePage> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        // Handle rider sign-up
+                         Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const memberRiderPage()),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
