@@ -1,4 +1,13 @@
+import 'dart:convert';
+import 'dart:developer';
+
+import 'package:delivery_1_app/config/internal_config.dart';
+import 'package:delivery_1_app/config/shared/app_data.dart';
+import 'package:delivery_1_app/pages/home_user.dart';
+import 'package:delivery_1_app/pages/model/Response/login_res.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -103,7 +112,7 @@ class _LoginPageState extends State<LoginPage> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {
-                            Login();
+                            login();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFEF702D),
@@ -126,8 +135,97 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-  
-  void Login() {
 
+  void login() async {
+    var data = {
+      "name": NameNoCtl.text,
+      "password": PasswordNoCtl.text,
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse("$API_ENDPOINT/user/login"),
+        headers: {"Content-Type": "application/json; charset=utf-8"},
+        body: jsonEncode(data),
+      );
+
+      if (response.statusCode == 200) {
+        // แปลงข้อมูลที่ได้รับจาก JSON เป็น List<LoginRes>
+        List<dynamic> jsonResponse = jsonDecode(response.body);
+        List<LoginRes> loginUsers =
+            jsonResponse.map((user) => LoginRes.fromJson(user)).toList();
+
+        // ตัวอย่างการใช้ข้อมูล
+        for (var user in loginUsers) {
+          log('ID: ${user.id}');
+          log('Username: ${user.username}');
+          log('Phone: ${user.phone}');
+          log('User Type: ${user.userType}');
+
+          int userId = user.id; // user.id เป็น user_id
+          String userType = user.userType;
+
+          if (userType == 'user') {
+            // เรียก API เพื่อดึงข้อมูล UserProfile
+            final userProfileResponse = await http.get(
+              Uri.parse(
+                  "$API_ENDPOINT/user/user_id?user_id=$userId"), // แก้ไขการเข้าถึง URL
+              headers: {"Content-Type": "application/json; charset=utf-8"},
+            );
+
+            if (userProfileResponse.statusCode == 200) {
+              // เก็บข้อมูลที่ได้รับจาก JSON ไว้
+              UserProfile userProfile =
+                  UserProfile.fromJson(jsonDecode(userProfileResponse.body)[0]);
+              Provider.of<AppData>(context, listen: false)
+                  .updateUser(userProfile);
+            } else {
+              log("เก็บข้อมูลไม่สำเร็จ");
+            }
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => HomeUserPage(),
+              ),
+            );
+            log('This user is a user.');
+          } else if (userType == 'rider') {
+            // เรียก API เพื่อดึงข้อมูล UserProfile
+            final riderProfileResponse = await http.get(
+              Uri.parse(
+                  "$API_ENDPOINT/rider/rider_id?rider_id=$userId"), // แก้ไขการเข้าถึง URL
+              headers: {"Content-Type": "application/json; charset=utf-8"},
+            );
+
+            if (riderProfileResponse.statusCode == 200) {
+              // เก็บข้อมูลที่ได้รับจาก JSON ไว้
+              RiderProfile riderProfile =
+                  RiderProfile.fromJson(jsonDecode(riderProfileResponse.body)[0]);
+              Provider.of<AppData>(context, listen: false)
+                  .updateRider(riderProfile);
+
+            } else {
+              log("เก็บข้อมูลไม่สำเร็จ");
+            }
+
+            //  Navigator.pushReplacement(
+            //   context,
+            //   MaterialPageRoute(
+            //     builder: (context) => HomeUserPage(),
+            //   ),
+            // );
+
+            log('This user is a normal rider.');
+            // คุณสามารถทำการนำทางไปยังหน้าสำหรับ rider ที่นี่ถ้าต้องการ
+          }
+        }
+      } else {
+        log('Failed to login: ${response.statusCode}');
+        log('Response body: ${response.body}');
+      }
+    } catch (error) {
+      log('Error: $error');
+    }
   }
 }

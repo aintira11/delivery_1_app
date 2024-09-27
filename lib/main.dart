@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:delivery_1_app/config/shared/app_data.dart';
+import 'package:delivery_1_app/pages/home.dart';
 import 'package:delivery_1_app/pages/home_user.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -51,7 +52,7 @@ class MyApp extends StatelessWidget {
           onSurface: Colors.black, // ใช้สีดำในพื้นผิว
         ),
       ),
-      home: const HomeUserPage(),
+      home: const HomePage(),
     );
   }
 }

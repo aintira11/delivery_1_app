@@ -370,10 +370,10 @@ void _pickImage() async {
   void register() async {
   // Check if the passwords match and all fields are filled
   if (passwordNoCtl.text == confirmpasswordNoCtl.text &&
-      nameNoCtl.text.isNotEmpty &&
-      phoneNoCtl.text.isNotEmpty &&
-      addressNoCtl.text.isNotEmpty &&
-      passwordNoCtl.text.isNotEmpty &&
+      nameNoCtl.text != null &&
+      phoneNoCtl.text != null &&
+      addressNoCtl.text != null &&
+      passwordNoCtl.text != null &&
       latitude != 0.0 && // Ensure latitude is set
       longitude != 0.0 && // Ensure longitude is set
       _imageUrl != null) { // Ensure image URL is set if required
@@ -402,7 +402,7 @@ void _pickImage() async {
       log("post");
       // Make the POST request
       final response = await http.post(
-        Uri.parse("$API_ENDPOINT/memberUser"),
+        Uri.parse("$API_ENDPOINT/user/memberUser"),
         headers: {"Content-Type": "application/json; charset=utf-8"},
         body: memberResToJson(req),
       );

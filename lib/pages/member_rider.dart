@@ -241,7 +241,7 @@ void _pickImage() async {
       log("post");
       // Make the POST request
       final response = await http.post(
-        Uri.parse("$API_ENDPOINT/memberRider"),
+        Uri.parse("$API_ENDPOINT/rider/memberRider"),
         headers: {"Content-Type": "application/json; charset=utf-8"},
         body: riderResToJson(req),
       );
