@@ -12,7 +12,7 @@ class DatauserRes {
     int userId;
     String name;
     String password;
-    int phone;
+    String phone;
     String address;
     String image;
     double latitude;

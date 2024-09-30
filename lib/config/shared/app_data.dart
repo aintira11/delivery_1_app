@@ -1,3 +1,5 @@
+//import 'dart:nativewrappers/_internal/vm/lib/core_patch.dart';
+
 import 'package:flutter/material.dart';
 
 class AppData with ChangeNotifier {
@@ -32,7 +34,7 @@ class UserProfile {
   int userId;
   String name;
   String password;
-  int phone;
+  String phone;
   String address;
   String image;
   double latitude;
@@ -43,7 +45,7 @@ class UserProfile {
     this.userId = 0,
     this.name = '',
     this.password = '',
-    this.phone = 0,
+    this.phone = '',
     this.address = '',
     this.image = '',
     this.latitude = 0.0,
@@ -84,7 +86,7 @@ class RiderProfile {
   int riderId;
   String riderName;
   String riderPassword;
-  int riderPhone;
+  String riderPhone;
   String riderImage;
   String vehicle;
   String riderType;
@@ -93,7 +95,7 @@ class RiderProfile {
     this.riderId = 0,
     this.riderName = '',
     this.riderPassword = '',
-    this.riderPhone = 0,
+    this.riderPhone = '',
     this.riderImage = '',
     this.vehicle = '',
     this.riderType = '',

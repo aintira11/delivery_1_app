@@ -1,8 +1,9 @@
-
 import 'package:delivery_1_app/config/internal_config.dart';
 import 'package:delivery_1_app/pages/home.dart';
 import 'package:delivery_1_app/pages/model/Request/memberRider_req.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'dart:developer';
@@ -46,7 +47,9 @@ class _memberRiderPageState extends State<memberRiderPage> {
             const SizedBox(height: 20),
             Center(
               child: GestureDetector(
-                onTap:(){_pickImage();} ,
+                onTap: () {
+                  _pickImage();
+                },
                 child: CircleAvatar(
                   radius: 50,
                   backgroundColor: Colors.white,
@@ -105,7 +108,7 @@ class _memberRiderPageState extends State<memberRiderPage> {
                             borderSide: BorderSide(width: 1))),
                   ),
                 ),
-                
+
                 // const SizedBox(height: 5,),
                 const Padding(
                   padding: EdgeInsets.all(16.0),
@@ -147,7 +150,9 @@ class _memberRiderPageState extends State<memberRiderPage> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed:(){register();} ,
+                  onPressed: () {
+                    register();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFEF702D),
                     padding: const EdgeInsets.symmetric(vertical: 15),
@@ -168,114 +173,156 @@ class _memberRiderPageState extends State<memberRiderPage> {
     );
   }
 
-void _pickImage() async {
-  try {
-    final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
-      await _uploadImage(_image!);
-      log("ImageUrl");
-    } else {
-      log("No image selected");
+  void _pickImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? pickedFile =
+          await picker.pickImage(source: ImageSource.gallery);
+
+      if (pickedFile != null) {
+        setState(() {
+          _image = File(pickedFile.path);
+        });
+        await _uploadImage(_image!);
+        log("ImageUrl");
+      } else {
+        log("No image selected");
+      }
+    } catch (e) {
+      log("Error picking image: $e");
     }
-  } catch (e) {
-    log("Error picking image: $e");
   }
-}
 
+  Future<void> _uploadImage(File image) async {
+    try {
+      log("filename");
+      String fileName = '${Uuid().v4()}.jpg'; // เปลี่ยนชื่อไฟล์ให้ไม่ซ้ำ
+      Reference ref = FirebaseStorage.instance.ref('delivery/$fileName');
 
- Future<void> _uploadImage(File image) async {
-  try {
-    log("filename");
-    String fileName = '${Uuid().v4()}.jpg'; // เปลี่ยนชื่อไฟล์ให้ไม่ซ้ำ
-    Reference ref = FirebaseStorage.instance.ref('delivery/$fileName');
-
-    // อัปโหลดไฟล์ไปยัง Firebase Storage
-    UploadTask uploadTask = ref.putFile(image);
-    TaskSnapshot snapshot = await uploadTask;
-  log("url");
-    // ตรวจสอบสถานะการอัปโหลด
-    if (snapshot.state == TaskState.success) {
-      // รับ URL ของรูปภาพที่อัปโหลด
-      _imageUrl = await ref.getDownloadURL();
-      log('Image uploaded successfully: $_imageUrl'); // แสดง URL ใน log
-    } else {
-      log('Upload failed with state: ${snapshot.state}');
+      // อัปโหลดไฟล์ไปยัง Firebase Storage
+      UploadTask uploadTask = ref.putFile(image);
+      TaskSnapshot snapshot = await uploadTask;
+      log("url");
+      // ตรวจสอบสถานะการอัปโหลด
+      if (snapshot.state == TaskState.success) {
+        // รับ URL ของรูปภาพที่อัปโหลด
+        _imageUrl = await ref.getDownloadURL();
+        log('Image uploaded successfully: $_imageUrl'); // แสดง URL ใน log
+      } else {
+        log('Upload failed with state: ${snapshot.state}');
+      }
+    } catch (e) {
+      log('Error uploading image: $e');
     }
-  } catch (e) {
-    log('Error uploading image: $e');
   }
-}
-
 
   void register() async {
-  // Check if the passwords match and all fields are filled
-  if (passwordNoCtl.text == confirmpasswordNoCtl.text &&
-      nameNoCtl.text.isNotEmpty &&
-      phoneNoCtl.text.isNotEmpty &&
-      vehicleNoCtl.text.isNotEmpty &&
-      passwordNoCtl.text.isNotEmpty &&
-      _imageUrl != null) { // Ensure image URL is set if required
-    log("data");
-    // Log the field values for debugging
-    log('Name: ${nameNoCtl.text}');
-    log('Phone: ${phoneNoCtl.text}');
-    log('vehicle: ${vehicleNoCtl.text}');
-    log('Password: ${passwordNoCtl.text}');
-    log('Image URL: $_imageUrl');
+    // รับค่าจาก controller และใช้ trim เพื่อลบช่องว่าง
+    String name = nameNoCtl.text.trim();
+    String phone = phoneNoCtl.text.trim();
+    String vehicle = vehicleNoCtl.text.trim();
+    String password = passwordNoCtl.text.trim();
+    String confirmPassword = confirmpasswordNoCtl.text.trim();
 
-    // Create an instance of MemberRes
-    RiderRes req = RiderRes(
-      riderName: nameNoCtl.text,
-      riderPassword: passwordNoCtl.text,
-      riderPhone: phoneNoCtl.text,
-      riderImage: _imageUrl ?? "",
-      vehicle: vehicleNoCtl.text,
-    );
+    if (passwordNoCtl.text != confirmpasswordNoCtl.text) {
+      Get.snackbar('Message Error !!!', 'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง ',
+          snackPosition: SnackPosition.TOP);
+    }
+    if (_imageUrl == null) {
+      Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
+          snackPosition: SnackPosition.TOP);
+    }
 
-    try {
-      log("post");
-      // Make the POST request
-      final response = await http.post(
-        Uri.parse("$API_ENDPOINT/rider/memberRider"),
-        headers: {"Content-Type": "application/json; charset=utf-8"},
-        body: riderResToJson(req),
+    if (name == null || name.isEmpty) {
+      Get.snackbar('Message Error !!!', 'ตั้งชื่อให้หน่อย 🥹',
+          snackPosition: SnackPosition.TOP);
+    }
+    if (vehicle == null || vehicle.isEmpty) {
+      Get.snackbar('Message Error !!!', 'มีรถขับป่าว',
+          snackPosition: SnackPosition.TOP);
+    }
+
+    if (phone.length != 10) {
+      Get.snackbar(
+          'Message Error !!!', 'Phone number must be exactly 10 digits',
+          snackPosition: SnackPosition.TOP);
+      //errorMessage = 'Phone number must be exactly 10 digits';
+    }
+
+    // ตรวจสอบว่ารหัสผ่านตรงกัน, เบอร์โทรศัพท์มีความยาว 10 หลัก และทุก field ไม่เป็นค่าว่างหรือ null
+    if (password == confirmPassword &&
+        name.isNotEmpty &&
+        phone.isNotEmpty &&
+        vehicle.isNotEmpty &&
+        password.isNotEmpty &&
+        _imageUrl != null) {
+      // ตรวจสอบเบอร์โทรศัพท์ว่ามีความยาว 10 หลักหรือไม่
+      if (phone.length != 10) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Phone number must be 10 digits long')),
+        );
+        return; // หยุดการทำงานถ้าเบอร์โทรไม่ถูกต้อง
+      }
+
+      log("data");
+
+      // Log field values สำหรับการ debug
+      log('Name: $name');
+      log('Phone: $phone');
+      log('Vehicle: $vehicle');
+      log('Password: $password');
+      log('Image URL: $_imageUrl');
+
+      // สร้าง instance ของ RiderRes
+      RiderRes req = RiderRes(
+        riderName: name,
+        riderPassword: password,
+        riderPhone: phone,
+        riderImage: _imageUrl ?? "",
+        vehicle: vehicle,
       );
 
-      // Check the response status
-      if (response.statusCode == 200) {
-        log('User registered successfully: ${response.body}');
-        // Navigate to the home page upon successful registration
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomePage(),
-          ),
+      try {
+        log("post");
+        // ทำการส่งคำขอ POST ไปยัง backend
+        final response = await http.post(
+          Uri.parse("$API_ENDPOINT/rider/memberRider"),
+          headers: {"Content-Type": "application/json; charset=utf-8"},
+          body: riderResToJson(req),
         );
-      } else {
-        log('Failed to register user: ${response.body}');
-        // Handle error response
+
+        // ตรวจสอบสถานะการตอบกลับ
+        if (response.statusCode == 200) {
+          log('User registered successfully: ${response.body}');
+          // นำทางไปยังหน้า home หากการสมัครสำเร็จ
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomePage(),
+            ),
+          );
+        } else {
+          log('Failed to register user: ${response.body}');
+          // แสดงข้อผิดพลาดผ่าน SnackBar
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Registration failed I already have this phone number.')),
+          );
+        }
+      } catch (error) {
+        log('Error: $error');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration failed: ${response.body}')),
+          SnackBar(content: Text('Error during registration: $error')),
         );
       }
-    } catch (error) {
-      log('Error: $error');
+    } else {
+      // แสดงข้อผิดพลาดหากข้อมูลไม่ถูกต้อง
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error during registration: $error')),
+        const SnackBar(
+          content: Text(
+              'Please fill all fields'),
+        ),
       );
     }
-  } else {
-    // Handle validation error
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Please fill all fields and ensure passwords match')),
-    );
   }
-}
-
 }

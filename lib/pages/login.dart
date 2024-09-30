@@ -5,6 +5,7 @@ import 'package:delivery_1_app/config/internal_config.dart';
 import 'package:delivery_1_app/config/shared/app_data.dart';
 import 'package:delivery_1_app/pages/home_user.dart';
 import 'package:delivery_1_app/pages/model/Response/login_res.dart';
+import 'package:delivery_1_app/pages/rider/order.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -17,7 +18,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  TextEditingController NameNoCtl = TextEditingController();
+  TextEditingController PhoneNoCtl = TextEditingController();
   TextEditingController PasswordNoCtl = TextEditingController();
   @override
   Widget build(BuildContext context) {
@@ -73,10 +74,11 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const Text('Name'),
+                      const Text('Phone number'),
                       const SizedBox(height: 5),
                       TextField(
-                        controller: NameNoCtl,
+                        controller: PhoneNoCtl,
+                        keyboardType: TextInputType.phone,
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: const Color.fromARGB(0, 255, 255, 255),
@@ -137,9 +139,32 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void login() async {
+    String phone = PhoneNoCtl.text.trim();
+    String password = PasswordNoCtl.text.trim();
+
+    if (phone.isEmpty || password.isEmpty) {
+      // แสดงข้อความแจ้งเตือนเมื่อเบอร์โทรศัพท์หรือรหัสผ่านว่างเปล่า
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error'),
+          content: const Text(
+              'Phone number and password cannot be empty or contain only spaces'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // เตรียมข้อมูลสำหรับส่งไปยัง backend
     var data = {
-      "name": NameNoCtl.text,
-      "password": PasswordNoCtl.text,
+      "phone": phone,
+      "password": password,
     };
 
     try {
@@ -150,75 +175,65 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (response.statusCode == 200) {
-        // แปลงข้อมูลที่ได้รับจาก JSON เป็น List<LoginRes>
-        List<dynamic> jsonResponse = jsonDecode(response.body);
-        List<LoginRes> loginUsers =
-            jsonResponse.map((user) => LoginRes.fromJson(user)).toList();
+        // แปลงข้อมูลที่ได้รับจาก JSON เป็น Map
+        var jsonResponse = jsonDecode(response.body);
+        // สร้าง LoginRes จาก Map
+        LoginRes loginUser = LoginRes.fromJson(jsonResponse);
 
-        // ตัวอย่างการใช้ข้อมูล
-        for (var user in loginUsers) {
-          log('ID: ${user.id}');
-          log('Username: ${user.username}');
-          log('Phone: ${user.phone}');
-          log('User Type: ${user.userType}');
+        log('ID: ${loginUser.id}');
+        log('Username: ${loginUser.username}');
+        log('Phone: ${loginUser.phone}');
+        log('User Type: ${loginUser.userType}');
 
-          int userId = user.id; // user.id เป็น user_id
-          String userType = user.userType;
+        // ทำงานต่อไปตามประเภทของผู้ใช้
+        int userId = loginUser.id;
+        String userType = loginUser.userType;
 
-          if (userType == 'user') {
-            // เรียก API เพื่อดึงข้อมูล UserProfile
-            final userProfileResponse = await http.get(
-              Uri.parse(
-                  "$API_ENDPOINT/user/user_id?user_id=$userId"), // แก้ไขการเข้าถึง URL
-              headers: {"Content-Type": "application/json; charset=utf-8"},
-            );
+        if (userType == 'user') {
+          final userProfileResponse = await http.get(
+            Uri.parse("$API_ENDPOINT/user/user_id?user_id=$userId"),
+            headers: {"Content-Type": "application/json; charset=utf-8"},
+          );
 
-            if (userProfileResponse.statusCode == 200) {
-              // เก็บข้อมูลที่ได้รับจาก JSON ไว้
-              UserProfile userProfile =
-                  UserProfile.fromJson(jsonDecode(userProfileResponse.body)[0]);
-              Provider.of<AppData>(context, listen: false)
-                  .updateUser(userProfile);
-            } else {
-              log("เก็บข้อมูลไม่สำเร็จ");
-            }
-
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => HomeUserPage(),
-              ),
-            );
-            log('This user is a user.');
-          } else if (userType == 'rider') {
-            // เรียก API เพื่อดึงข้อมูล UserProfile
-            final riderProfileResponse = await http.get(
-              Uri.parse(
-                  "$API_ENDPOINT/rider/rider_id?rider_id=$userId"), // แก้ไขการเข้าถึง URL
-              headers: {"Content-Type": "application/json; charset=utf-8"},
-            );
-
-            if (riderProfileResponse.statusCode == 200) {
-              // เก็บข้อมูลที่ได้รับจาก JSON ไว้
-              RiderProfile riderProfile =
-                  RiderProfile.fromJson(jsonDecode(riderProfileResponse.body)[0]);
-              Provider.of<AppData>(context, listen: false)
-                  .updateRider(riderProfile);
-
-            } else {
-              log("เก็บข้อมูลไม่สำเร็จ");
-            }
-
-            //  Navigator.pushReplacement(
-            //   context,
-            //   MaterialPageRoute(
-            //     builder: (context) => HomeUserPage(),
-            //   ),
-            // );
-
-            log('This user is a normal rider.');
-            // คุณสามารถทำการนำทางไปยังหน้าสำหรับ rider ที่นี่ถ้าต้องการ
+          if (userProfileResponse.statusCode == 200) {
+            UserProfile userProfile =
+                UserProfile.fromJson(jsonDecode(userProfileResponse.body)[0]);
+            Provider.of<AppData>(context, listen: false)
+                .updateUser(userProfile);
+          } else {
+            log("เก็บข้อมูลไม่สำเร็จ");
           }
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomeUserPage(),
+            ),
+          );
+          log('This user is a user.');
+        } else if (userType == 'rider') {
+          final riderProfileResponse = await http.get(
+            Uri.parse("$API_ENDPOINT/rider/rider_id?rider_id=$userId"),
+            headers: {"Content-Type": "application/json; charset=utf-8"},
+          );
+
+          if (riderProfileResponse.statusCode == 200) {
+            RiderProfile riderProfile =
+                RiderProfile.fromJson(jsonDecode(riderProfileResponse.body)[0]);
+            Provider.of<AppData>(context, listen: false)
+                .updateRider(riderProfile);
+
+                 Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => orderRiderPage(),
+            ),
+          );
+          } else {
+            log("เก็บข้อมูลไม่สำเร็จ");
+          }
+
+          log('This user is a normal rider.');
         }
       } else {
         log('Failed to login: ${response.statusCode}');

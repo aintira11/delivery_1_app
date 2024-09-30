@@ -2,15 +2,18 @@ import 'package:delivery_1_app/config/internal_config.dart';
 import 'package:delivery_1_app/pages/home.dart';
 import 'package:delivery_1_app/pages/model/Request/memberUser_req.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'dart:developer';
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart'; // นำเข้า Firebase Storage
-import 'package:uuid/uuid.dart'; // ใช้สำหรับสร้าง UUID
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
+import 'package:geocoding/geocoding.dart'; // เพิ่มการนำเข้า geocoding
 
 class MemberUserPage extends StatefulWidget {
   const MemberUserPage({super.key});
@@ -29,11 +32,25 @@ class _MemberUserPageState extends State<MemberUserPage> {
   TextEditingController confirmpasswordNoCtl = TextEditingController();
 
   LatLng latLng = LatLng(15.998009549056942, 102.53815639596311);
-
-  double latitude = 0.0; // Corrected variable type and initialized
+  double latitude = 0.0;
   double longitude = 0.0;
-
   MapController mapController = MapController();
+  List<Marker> markers = [];
+  
+  @override
+  void initState() {
+    super.initState();
+    _determinePosition().then((position) {
+      setState(() {
+        latLng = LatLng(
+            position.latitude, position.longitude); // อัปเดตค่าตำแหน่งเริ่มต้น
+        latitude = position.latitude; // อัปเดตค่า latitude
+        longitude = position.longitude; // อัปเดตค่า longitude
+      });
+    }).catchError((error) {
+      log('Error getting current position: $error');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +69,9 @@ class _MemberUserPageState extends State<MemberUserPage> {
             const SizedBox(height: 20),
             Center(
               child: GestureDetector(
-                onTap:(){_pickImage();} ,
+                onTap: () {
+                  _pickImage();
+                },
                 child: CircleAvatar(
                   radius: 50,
                   backgroundColor: Colors.white,
@@ -100,19 +119,6 @@ class _MemberUserPageState extends State<MemberUserPage> {
                 ),
                 const Padding(
                   padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                  child: Text('Address'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
-                  child: TextField(
-                    controller: addressNoCtl,
-                    decoration: const InputDecoration(
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(width: 1))),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
                   child: Text('Select Location'),
                 ),
                 Padding(
@@ -121,12 +127,7 @@ class _MemberUserPageState extends State<MemberUserPage> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () async {
-                        var position = await _determinePosition();
-                        log('${position.latitude} ${position.longitude}');
-                        longitude = position.longitude;
-                        latitude = position.latitude;
-                        latLng = LatLng(position.latitude, position.longitude);
-                        _showMap(); // Call _showMap here
+                        _showMap();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color.fromARGB(255, 0, 0, 0),
@@ -142,6 +143,19 @@ class _MemberUserPageState extends State<MemberUserPage> {
                     ),
                   ),
                 ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                  child: Text('Address'),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
+                  child: TextField(
+                    controller: addressNoCtl,
+                    decoration: const InputDecoration(
+                        border: OutlineInputBorder(
+                            borderSide: BorderSide(width: 1))),
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
                   child: Text(
@@ -152,7 +166,6 @@ class _MemberUserPageState extends State<MemberUserPage> {
                     ),
                   ),
                 ),
-                // const SizedBox(height: 5,),
                 const Padding(
                   padding: EdgeInsets.all(16.0),
                   child: Divider(color: Colors.black),
@@ -193,7 +206,9 @@ class _MemberUserPageState extends State<MemberUserPage> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed:(){register();} ,
+                  onPressed: () {
+                    register();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFEF702D),
                     padding: const EdgeInsets.symmetric(vertical: 15),
@@ -214,108 +229,143 @@ class _MemberUserPageState extends State<MemberUserPage> {
     );
   }
 
-void _pickImage() async {
-  try {
-    final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
-      await _uploadImage(_image!);
-      log("ImageUrl");
-    } else {
-      log("No image selected");
+  void _pickImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? pickedFile =
+          await picker.pickImage(source: ImageSource.gallery);
+
+      if (pickedFile != null) {
+        setState(() {
+          _image = File(pickedFile.path);
+        });
+        await _uploadImage(_image!);
+        log("ImageUrl");
+      } else {
+        Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
+            snackPosition: SnackPosition.TOP);
+        log("No image selected");
+      }
+    } catch (e) {
+      log("Error picking image: $e");
     }
-  } catch (e) {
-    log("Error picking image: $e");
   }
-}
 
+  Future<void> _uploadImage(File image) async {
+    try {
+      log("filename");
+      String fileName = '${Uuid().v4()}.jpg'; // เปลี่ยนชื่อไฟล์ให้ไม่ซ้ำ
+      Reference ref = FirebaseStorage.instance.ref('delivery/$fileName');
 
- Future<void> _uploadImage(File image) async {
-  try {
-    log("filename");
-    String fileName = '${Uuid().v4()}.jpg'; // เปลี่ยนชื่อไฟล์ให้ไม่ซ้ำ
-    Reference ref = FirebaseStorage.instance.ref('delivery/$fileName');
-
-    // อัปโหลดไฟล์ไปยัง Firebase Storage
-    UploadTask uploadTask = ref.putFile(image);
-    TaskSnapshot snapshot = await uploadTask;
-  log("url");
-    // ตรวจสอบสถานะการอัปโหลด
-    if (snapshot.state == TaskState.success) {
-      // รับ URL ของรูปภาพที่อัปโหลด
-      _imageUrl = await ref.getDownloadURL();
-      log('Image uploaded successfully: $_imageUrl'); // แสดง URL ใน log
-    } else {
-      log('Upload failed with state: ${snapshot.state}');
+      // อัปโหลดไฟล์ไปยัง Firebase Storage
+      UploadTask uploadTask = ref.putFile(image);
+      TaskSnapshot snapshot = await uploadTask;
+      log("url");
+      // ตรวจสอบสถานะการอัปโหลด
+      if (snapshot.state == TaskState.success) {
+        // รับ URL ของรูปภาพที่อัปโหลด
+        _imageUrl = await ref.getDownloadURL();
+        log('Image uploaded successfully: $_imageUrl'); // แสดง URL ใน log
+      } else {
+        log('Upload failed with state: ${snapshot.state}');
+      }
+    } catch (e) {
+      log('Error uploading image: $e');
     }
-  } catch (e) {
-    log('Error uploading image: $e');
   }
-}
 
-  void _showMap() {
+  Future<void> _showMap() async {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
+        LatLng tempLatLng =
+            latLng; // เก็บพิกัดชั่วคราวสำหรับการอัปเดตภายใน dialog
         return AlertDialog(
           title: const Text('Map'),
           content: SizedBox(
             width: double.maxFinite,
-            height: 350,
-            child: FlutterMap(
-              mapController: mapController,
-              options: MapOptions(
-                initialCenter: latLng,
-                initialZoom: 15.0,
-                onTap: (tapPosition, point) {
-                  // เมื่อมีการจิ้มที่แผนที่
-                  _showCoordinates(point);
-                },
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.app',
-                ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                        point: LatLng(latitude, longitude), // ใช้ค่าที่เก็บไว้
-                        width: 40,
-                        height: 40,
-                        child: const SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: Icon(
-                            Icons.motorcycle,
-                            size: 30,
+            height: 400,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                return FlutterMap(
+                  options: MapOptions(
+                    initialCenter:
+                        tempLatLng, // Set the initial center of the map
+                    initialZoom: 13.0, // Set the initial zoom level
+                    onTap: (tapPosition, point) {
+                      // Update coordinates when tapping on the map
+                      setState(() {
+                        tempLatLng = point; // อัปเดตค่าพิกัดชั่วคราวใน dialog
+                        latitude = point.latitude; // อัปเดต latitude
+                        longitude = point.longitude; // อัปเดต longitude
+                        _updateAddress(
+                            point); // เรียกใช้งานฟังก์ชันเพื่ออัปเดตที่อยู่
+                        log('Latitude: ${point.latitude}, Longitude: ${point.longitude}'); // Log ค่าใหม่
+                      });
+                    },
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                      subdomains: ['a', 'b', 'c'],
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          width: 80.0,
+                          height: 80.0,
+                          point: tempLatLng,
+                          child: const Icon(
+                            Icons.location_pin,
                             color: Colors.red,
+                            size: 40.0,
                           ),
                         ),
-                        alignment: Alignment.center),
+                      ],
+                    ),
                   ],
-                ),
-              ],
+                );
+              },
             ),
           ),
           actions: [
             TextButton(
               onPressed: () {
+                // อัปเดตค่าพิกัดสุดท้ายก่อนปิด dialog
+                setState(() {
+                  latLng = tempLatLng;
+                });
                 Navigator.of(context).pop();
               },
-              child: const Text(
-                'Close',
-                style: TextStyle(color: Colors.black),
-              ),
+              child: const Text('Close'),
             ),
           ],
         );
       },
     );
+  }
+
+  Future<void> _updateAddress(LatLng point) async {
+    try {
+      // แปลงพิกัด GPS เป็นที่อยู่
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        point.latitude,
+        point.longitude,
+      );
+
+      // รับที่อยู่และอัปเดตใน TextField
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        String address =
+            '${place.name}, ${place.locality}, ${place.postalCode}, ${place.country}';
+        setState(() {
+          addressNoCtl.text = address; // อัปเดตที่อยู่ใน TextField
+        });
+      }
+    } catch (e) {
+      log('Error getting address: $e');
+    }
   }
 
   void _showCoordinates(LatLng point) {
@@ -344,99 +394,133 @@ void _pickImage() async {
   }
 
   Future<Position> _determinePosition() async {
-    bool serviceEnabled;
     LocationPermission permission;
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return Future.error('Location services are disabled.');
-    }
-
+    // ตรวจสอบสถานะการอนุญาต
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return Future.error('Location permissions are denied');
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
+        throw Exception('Location permissions are denied');
       }
     }
 
-    if (permission == LocationPermission.deniedForever) {
-      return Future.error('Location permissions are permanently denied.');
-    }
-
-    return await Geolocator.getCurrentPosition();
+    // รับพิกัดปัจจุบัน
+    return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
   }
 
   void register() async {
-  // Check if the passwords match and all fields are filled
-  if (passwordNoCtl.text == confirmpasswordNoCtl.text &&
-      nameNoCtl.text != null &&
-      phoneNoCtl.text != null &&
-      addressNoCtl.text != null &&
-      passwordNoCtl.text != null &&
-      latitude != 0.0 && // Ensure latitude is set
-      longitude != 0.0 && // Ensure longitude is set
-      _imageUrl != null) { // Ensure image URL is set if required
-    log("data");
-    // Log the field values for debugging
-    log('Name: ${nameNoCtl.text}');
-    log('Phone: ${phoneNoCtl.text}');
-    log('Address: ${addressNoCtl.text}');
-    log('Password: ${passwordNoCtl.text}');
-    log('Latitude: $latitude');
-    log('Longitude: $longitude');
-    log('Image URL: $_imageUrl');
+    // รับค่าจาก controller และใช้ trim เพื่อลบช่องว่าง
+    String name = nameNoCtl.text.trim();
+    String phone = phoneNoCtl.text.trim();
+    String address = addressNoCtl.text.trim();
+    String password = passwordNoCtl.text.trim();
+    String confirmPassword = confirmpasswordNoCtl.text.trim();
 
-    // Create an instance of MemberRes
-    MemberRes req = MemberRes(
-      name: nameNoCtl.text,
-      password: passwordNoCtl.text,
-      phone: phoneNoCtl.text,
-      address: addressNoCtl.text,
-      image: _imageUrl ?? "",
-      latitude: latitude,
-      longitude: longitude,
-    );
+    if (passwordNoCtl.text != confirmpasswordNoCtl.text) {
+      Get.snackbar('Message Error !!!', 'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง ',
+          snackPosition: SnackPosition.TOP);
+    }
+    if (_imageUrl == null) {
+      Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
+          snackPosition: SnackPosition.TOP);
+    }
+    if (phone.length != 10) {
+      Get.snackbar(
+          'Message Error !!!', 'Phone number must be exactly 10 digits',
+          snackPosition: SnackPosition.TOP);
+      //errorMessage = 'Phone number must be exactly 10 digits';
+    }
 
-    try {
-      log("post");
-      // Make the POST request
-      final response = await http.post(
-        Uri.parse("$API_ENDPOINT/user/memberUser"),
-        headers: {"Content-Type": "application/json; charset=utf-8"},
-        body: memberResToJson(req),
+    if (name == null || name.isEmpty) {
+      Get.snackbar('Message Error !!!', 'ตั้งชื่อให้หน่อย 🥹',
+          snackPosition: SnackPosition.TOP);
+    }
+    
+
+    // ตรวจสอบว่าฟิลด์ทั้งหมดไม่ว่างเปล่า, null, และเบอร์โทรศัพท์มีความยาว 10 หลัก
+    if (password == confirmPassword &&
+        name.isNotEmpty &&
+        phone.isNotEmpty &&
+        address.isNotEmpty &&
+        password.isNotEmpty &&
+        phone.length == 10 && // เช็คเบอร์โทรศัพท์ต้องเป็น 10 ตัว
+        latitude != 0.0 && // เช็ค latitude
+        longitude != 0.0 && // เช็ค longitude
+        _imageUrl != null) {
+      // เช็คว่า image URL ถูกเซ็ตหรือไม่
+
+      log("data");
+
+      // Log field values สำหรับการ debug
+      log('Name: $name');
+      log('Phone: $phone');
+      log('Address: $address');
+      log('Password: $password');
+      log('Latitude: $latitude');
+      log('Longitude: $longitude');
+      log('Image URL: $_imageUrl');
+
+      // สร้าง instance ของ MemberRes
+      MemberRes req = MemberRes(
+        name: name,
+        password: password,
+        phone: phone,
+        address: address,
+        image: _imageUrl ?? "",
+        latitude: latitude,
+        longitude: longitude,
       );
 
-      // Check the response status
-      if (response.statusCode == 200) {
-        log('User registered successfully: ${response.body}');
-        // Navigate to the home page upon successful registration
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomePage(),
-          ),
+      try {
+        log("post");
+        // ทำการส่งคำขอ POST ไปยัง backend
+        final response = await http.post(
+          Uri.parse("$API_ENDPOINT/user/memberUser"),
+          headers: {"Content-Type": "application/json; charset=utf-8"},
+          body: memberResToJson(req),
         );
-      } else {
-        log('Failed to register user: ${response.body}');
-        // Handle error response
+
+        // ตรวจสอบสถานะการตอบกลับ
+        if (response.statusCode == 200) {
+          log('User registered successfully: ${response.body}');
+          // นำทางไปยังหน้า home หากการสมัครสำเร็จ
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomePage(),
+            ),
+          );
+        } else {
+          
+          log('Failed to register user: ${response.body}');
+          // แสดงข้อผิดพลาดผ่าน SnackBar
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Registration failed I already have this phone number.')),
+          );
+        }
+      } catch (error) {
+        log('Error: $error');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration failed: ${response.body}')),
+          SnackBar(content: Text('Error during registration: $error')),
         );
       }
-    } catch (error) {
-      log('Error: $error');
+    } else {
+      // แสดงข้อผิดพลาดหากข้อมูลไม่ถูกต้อง
+      //  Get.snackbar('Message Error !!!', 'ใส่ข้อมูลไม่ครบ 🥹',
+      //       snackPosition: SnackPosition.TOP);
+      String errorMessage =
+          'Please fill all fields';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error during registration: $error')),
+        SnackBar(content: Text(errorMessage)),
       );
+      //  if (phone.length != 10) {
+      //   Get.snackbar('Message Error !!!', 'Phone number must be exactly 10 digits',
+      //       snackPosition: SnackPosition.TOP);
+      //   errorMessage = 'Phone number must be exactly 10 digits';
+      // }
     }
-  } else {
-    // Handle validation error
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Please fill all fields and ensure passwords match')),
-    );
   }
-}
-
 }

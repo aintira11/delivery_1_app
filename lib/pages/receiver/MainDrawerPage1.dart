@@ -1,21 +1,21 @@
 import 'dart:developer';
-import 'package:delivery_1_app/pages/sender/chackStatus.dart';
-import 'package:delivery_1_app/pages/sender/senderHome.dart';
-import 'package:delivery_1_app/pages/sender/wait.dart';
+
+import 'package:delivery_1_app/pages/home_user.dart';
+import 'package:delivery_1_app/pages/receiver/toreceiver.dart';
+import 'package:delivery_1_app/pages/receiver/toship.dart';
 import 'package:flutter/material.dart';
 
-
-class MainDrawerPage extends StatefulWidget {
+class MainDrawer1Page extends StatefulWidget {
   final int value;
-  const MainDrawerPage({super.key, required this.value});
+  const MainDrawer1Page({super.key, required this.value});
 
   @override
-  State<MainDrawerPage> createState() => _MainDrawerPageState();
+  State<MainDrawer1Page> createState() => _MainDrawer1PageState();
 }
 
-class _MainDrawerPageState extends State<MainDrawerPage> {
-    late int value;
-  Widget curretnPage = senderHomaPage();
+class _MainDrawer1PageState extends State<MainDrawer1Page> {
+  late int value;
+  Widget curretnPage = ToShipPage();
 
   @override
   void initState() {
@@ -24,7 +24,7 @@ class _MainDrawerPageState extends State<MainDrawerPage> {
     value = widget.value;
     switchPage(value); // เรียก switchPage เพื่อแสดงหน้าแรกตาม value
   }
-  
+
   void switchPage(int index) {
     setState(() {
       value = index; // Update the current index
@@ -32,13 +32,18 @@ class _MainDrawerPageState extends State<MainDrawerPage> {
 
       // Change the current page based on the selected tab
       if (index == 0) {
-        curretnPage = senderHomaPage();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const HomeUserPage(),
+          ),
+        );
       } else if (index == 1) {
         // Replace with actual page when ready
-        curretnPage = CheckStatusPage(); // Placeholder for Status page
+        curretnPage = ToShipPage(); // Placeholder for Status page
       } else if (index == 2) {
         // Replace with actual page when ready
-        curretnPage = WaitRiderPage(); // Placeholder for Wait page
+        curretnPage = toReceiverPage(); // Placeholder for Wait page
       }
     });
   }
@@ -48,7 +53,7 @@ class _MainDrawerPageState extends State<MainDrawerPage> {
     return Scaffold(
       body: curretnPage,
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor:  Color(0xFFEF702D), 
+        backgroundColor: Color(0xFFEF702D),
         currentIndex: value, // Reflect the current index
         items: const [
           BottomNavigationBarItem(
@@ -57,11 +62,11 @@ class _MainDrawerPageState extends State<MainDrawerPage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.local_shipping),
-            label: 'Status',
+            label: 'To Ship',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.hourglass_empty),
-            label: 'Wait',
+            icon: Icon(Icons.local_mall),
+            label: 'To Receive',
           ),
         ],
         onTap: switchPage, // Call the function to switch pages on tap

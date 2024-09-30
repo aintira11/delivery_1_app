@@ -12,7 +12,7 @@ class DatariderRes {
     int riderId;
     String riderName;
     String riderPassword;
-    int riderPhone;
+    String riderPhone;
     String riderImage;
     String vehicle;
     String riderType;

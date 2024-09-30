@@ -11,7 +11,7 @@ String loginResToJson(List<LoginRes> data) => json.encode(List<dynamic>.from(dat
 class LoginRes {
     int id;
     String username;
-    int phone;
+    String phone;
     String userType;
 
     LoginRes({

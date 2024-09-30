@@ -1,4 +1,6 @@
 import 'dart:developer';
+import 'package:delivery_1_app/pages/sender/Maindrawer.dart';
+import 'package:delivery_1_app/pages/sender/wait.dart';
 import 'package:firebase_storage/firebase_storage.dart'; // นำเข้า Firebase Storage
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
@@ -123,7 +125,11 @@ class _ConfirmImagePageState extends State<ConfirmImagePage> {
             // Confirm Button
             ElevatedButton(
               onPressed: () {
-                // Handle confirmation action here
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>  MainDrawerPage(value:2)),
+                  );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green[300], // Green confirm button
