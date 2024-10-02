@@ -21,7 +21,7 @@ class _ToShipPageState extends State<ToShipPage> {
           children: [
             // Text to show the number of items
             const Text(
-              'All 2',
+              'All 1',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
@@ -110,12 +110,12 @@ class _ToShipPageState extends State<ToShipPage> {
                                     ),
                                   ),
                                   SizedBox(height: 8),
-                                  Text(
-                                    'จำนวน: 2 กล่อง',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                    ),
-                                  ),
+                                  // Text(
+                                  //   'จำนวน: 2 กล่อง',
+                                  //   style: TextStyle(
+                                  //     fontSize: 14,
+                                  //   ),
+                                  // ),
                                 ],
                               ),
                             ),
@@ -147,12 +147,12 @@ class _ToShipPageState extends State<ToShipPage> {
                                       ),
                                     ),
                                     SizedBox(height: 8),
-                                    Text(
-                                      'จำนวน: 2 กล่อง',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                      ),
-                                    ),
+                                    // Text(
+                                    //   'จำนวน: 2 กล่อง',
+                                    //   style: TextStyle(
+                                    //     fontSize: 14,
+                                    //   ),
+                                    // ),
                                   ],
                                 ),
                               ),

@@ -1,3 +1,4 @@
+import 'package:delivery_1_app/pages/receiver/mapReceiver.dart';
 import 'package:flutter/material.dart';
 
 class toReceiverPage extends StatefulWidget {
@@ -117,6 +118,11 @@ class _toReceiverPageState extends State<toReceiverPage> {
                     child: TextButton(
                       onPressed: () {
                         // เพิ่มการทำงานเมื่อปุ่มถูกกด
+                         Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const mapReceiverPage()),
+                  );
                       },
                       child: const Text(
                         'Status',

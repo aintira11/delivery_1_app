@@ -108,19 +108,14 @@ class OrderCard extends StatelessWidget {
                     fontSize: 16.0,
                   ),
                 ),
-                Text(
-                  'สถานะ: $status',
-                  style: const TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+               
               ],
             ),
 
             const SizedBox(height: 8.0),
             // เบอร์โทร
             Text('Phone: $phone'),
+             
             const SizedBox(height: 8.0),
             const Divider(color: Colors.black),
             // แถวที่สอง: รูปภาพสินค้า และเนื้อหา order
@@ -178,6 +173,13 @@ class OrderCard extends StatelessWidget {
                 ],
               ),
             ),
+            Text(
+                  'สถานะ: $status',
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
 
             const SizedBox(height: 8.0),
             // ปุ่ม Status

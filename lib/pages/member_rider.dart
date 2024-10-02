@@ -20,6 +20,7 @@ class memberRiderPage extends StatefulWidget {
 }
 
 class _memberRiderPageState extends State<memberRiderPage> {
+  final _formKey = GlobalKey<FormState>(); // สร้าง GlobalKey สำหรับฟอร์ม
   File? _image;
   String? _imageUrl;
   TextEditingController nameNoCtl = TextEditingController();
@@ -42,132 +43,177 @@ class _memberRiderPageState extends State<memberRiderPage> {
       ),
       backgroundColor: const Color.fromARGB(255, 253, 239, 202),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            Center(
-              child: GestureDetector(
-                onTap: () {
-                  _pickImage();
-                },
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.white,
-                  backgroundImage: _image != null ? FileImage(_image!) : null,
-                  child: _image == null
-                      ? const Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Colors.grey,
-                        )
-                      : null,
+        child: Form(
+          key: _formKey, // ผูกฟอร์มกับ GlobalKey
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Center(
+                child: GestureDetector(
+                  onTap: () {
+                    _pickImage();
+                  },
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.white,
+                    backgroundImage: _image != null ? FileImage(_image!) : null,
+                    child: _image == null
+                        ? const Icon(
+                            Icons.person,
+                            size: 50,
+                            color: Colors.grey,
+                          )
+                        : null,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                  child: Text('Name'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
-                  child: TextField(
-                    controller: nameNoCtl,
-                    decoration: const InputDecoration(
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(width: 1))),
+              const SizedBox(height: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    child: Text('Name'),
                   ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                  child: Text('Phone number'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
-                  child: TextField(
-                    controller: phoneNoCtl,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(width: 1))),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                  child: Text('motor vehicle registration'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
-                  child: TextField(
-                    controller: vehicleNoCtl,
-                    decoration: const InputDecoration(
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(width: 1))),
-                  ),
-                ),
-
-                // const SizedBox(height: 5,),
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Divider(color: Colors.black),
-                ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                  child: Text('Password'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 10),
-                  child: TextField(
-                    controller: passwordNoCtl,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(width: 1))),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-                  child: Text('Confirm password'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 10),
-                  child: TextField(
-                    controller: confirmpasswordNoCtl,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(width: 1))),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    register();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF702D),
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
+                    child: TextFormField(
+                      controller: nameNoCtl,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'กรุณากรอกชื่อ';
+                        }
+                        return null;
+                      },
+                      decoration: const InputDecoration(
+                          border: OutlineInputBorder(
+                              borderSide: BorderSide(width: 1))),
                     ),
                   ),
-                  child: const Text(
-                    'Sign up',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    child: Text('Phone number'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
+                    child: TextFormField(
+                      controller: phoneNoCtl,
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'กรุณากรอกหมายเลขโทรศัพท์';
+                        } else if (value.length != 10) {
+                          return 'เบอร์โทรศัพท์ต้องมี 10 หลัก';
+                        }
+                        return null;
+                      },
+                      decoration: const InputDecoration(
+                          border: OutlineInputBorder(
+                              borderSide: BorderSide(width: 1))),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    child: Text('motor vehicle registration'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
+                    child: TextFormField(
+                      controller: vehicleNoCtl,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'กรุณากรอกเลขทะเบียนรถ';
+                        }
+                        return null;
+                      },
+                      decoration: const InputDecoration(
+                          border: OutlineInputBorder(
+                              borderSide: BorderSide(width: 1))),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Divider(color: Colors.black),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    child: Text('Password'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 10),
+                    child: TextFormField(
+                      controller: passwordNoCtl,
+                      obscureText: true,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'กรุณากรอกรหัสผ่าน';
+                        }
+                        return null;
+                      },
+                      decoration: const InputDecoration(
+                          border: OutlineInputBorder(
+                              borderSide: BorderSide(width: 1))),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    child: Text('Confirm password'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 10),
+                    child: TextFormField(
+                      controller: confirmpasswordNoCtl,
+                      obscureText: true,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'กรุณายืนยันรหัสผ่าน';
+                        } else if (value != passwordNoCtl.text) {
+                          return 'รหัสผ่านไม่ตรงกัน';
+                        }
+                        return null;
+                      },
+                      decoration: const InputDecoration(
+                          border: OutlineInputBorder(
+                              borderSide: BorderSide(width: 1))),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // ตรวจสอบฟอร์ม
+                      if (_formKey.currentState?.validate() ?? false) {
+                        // ถ้าผ่านการตรวจสอบ ให้ดำเนินการลงทะเบียน
+                        register();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('กรุณากรอกข้อมูลให้ครบถ้วน'),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF702D),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                    ),
+                    child: const Text(
+                      'Sign up',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -225,29 +271,30 @@ class _memberRiderPageState extends State<memberRiderPage> {
     String confirmPassword = confirmpasswordNoCtl.text.trim();
 
     if (passwordNoCtl.text != confirmpasswordNoCtl.text) {
-      Get.snackbar('Message Error !!!', 'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง ',
-          snackPosition: SnackPosition.TOP);
-    }
-    if (_imageUrl == null) {
-      Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
-          snackPosition: SnackPosition.TOP);
-    }
-
-    if (name == null || name.isEmpty) {
-      Get.snackbar('Message Error !!!', 'ตั้งชื่อให้หน่อย 🥹',
-          snackPosition: SnackPosition.TOP);
-    }
-    if (vehicle == null || vehicle.isEmpty) {
-      Get.snackbar('Message Error !!!', 'มีรถขับป่าว',
-          snackPosition: SnackPosition.TOP);
-    }
-
-    if (phone.length != 10) {
-      Get.snackbar(
-          'Message Error !!!', 'Phone number must be exactly 10 digits',
-          snackPosition: SnackPosition.TOP);
-      //errorMessage = 'Phone number must be exactly 10 digits';
-    }
+      // Get.snackbar('Message Error !!!', 'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง ',
+      //     snackPosition: SnackPosition.TOP);
+       const SnackBar(
+                content: Text(
+                    'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง.'));
+    } else if (_imageUrl == null) {
+      // Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
+      //     snackPosition: SnackPosition.TOP);
+       const SnackBar(
+                content: Text(
+                    'เลือกสักรุปสิ 🤔.'));
+    } 
+    //else if (name == null || name.isEmpty) {
+    //   Get.snackbar('Message Error !!!', 'ตั้งชื่อให้หน่อย 🥹',
+    //       snackPosition: SnackPosition.TOP);
+    // } else if (phone.length != 10) {
+    //   Get.snackbar(
+    //       'Message Error !!!', 'Phone number must be exactly 10 digits',
+    //       snackPosition: SnackPosition.TOP);
+    //   //errorMessage = 'Phone number must be exactly 10 digits';
+    // } else if (vehicle == null || vehicle.isEmpty) {
+    //   Get.snackbar('Message Error !!!', 'มีรถขับป่าว',
+    //       snackPosition: SnackPosition.TOP);
+    // }
 
     // ตรวจสอบว่ารหัสผ่านตรงกัน, เบอร์โทรศัพท์มีความยาว 10 หลัก และทุก field ไม่เป็นค่าว่างหรือ null
     if (password == confirmPassword &&
@@ -305,7 +352,9 @@ class _memberRiderPageState extends State<memberRiderPage> {
           log('Failed to register user: ${response.body}');
           // แสดงข้อผิดพลาดผ่าน SnackBar
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Registration failed I already have this phone number.')),
+            const SnackBar(
+                content: Text(
+                    'Registration failed I already have this phone number.')),
           );
         }
       } catch (error) {
@@ -319,8 +368,7 @@ class _memberRiderPageState extends State<memberRiderPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-              'Please fill all fields'),
+          content: Text('Please fill all fields'),
         ),
       );
     }

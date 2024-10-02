@@ -5,8 +5,10 @@ import 'package:delivery_1_app/config/internal_config.dart';
 import 'package:delivery_1_app/config/shared/app_data.dart';
 import 'package:delivery_1_app/pages/home_user.dart';
 import 'package:delivery_1_app/pages/model/Response/login_res.dart';
+import 'package:delivery_1_app/pages/rider/homeRider.dart';
 import 'package:delivery_1_app/pages/rider/order.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
@@ -18,8 +20,12 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
   TextEditingController PhoneNoCtl = TextEditingController();
   TextEditingController PasswordNoCtl = TextEditingController();
+
+  MapController mapController = MapController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,109 +34,137 @@ class _LoginPageState extends State<LoginPage> {
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.rocket_launch,
-                        size: 60,
-                        color: Colors.black,
-                      ),
-                      Text(
-                        'DELIVERY',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '- ROCKET DELIVERY -',
-                        style: TextStyle(
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 40),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Color.fromARGB(255, 252, 183, 64),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Welcome Back',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+            child: Form(
+              key: _formKey, // ผูกฟอร์มกับ GlobalKey
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.rocket_launch,
+                          size: 60,
                           color: Colors.black,
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text('Phone number'),
-                      const SizedBox(height: 5),
-                      TextField(
-                        controller: PhoneNoCtl,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: const Color.fromARGB(0, 255, 255, 255),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Colors.black,
-                              width: 1.0,
-                            ),
+                        Text(
+                          'DELIVERY',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 15),
-                      const Text('Password'),
-                      const SizedBox(height: 5),
-                      TextField(
-                        controller: PasswordNoCtl,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: const Color.fromARGB(0, 255, 255, 255),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Colors.black,
-                              width: 1.0,
-                            ),
+                        Text(
+                          '- ROCKET DELIVERY -',
+                          style: TextStyle(
+                            fontSize: 12,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            login();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFEF702D),
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.all(
-                                  Radius.circular(10)), // มุมไม่โค้ง
-                            ),
-                          ),
-                          child: const Text('Login'),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 40),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Color.fromARGB(255, 252, 183, 64),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Welcome Back',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('Phone number'),
+                        const SizedBox(height: 5),
+                        TextFormField(
+                          controller: PhoneNoCtl,
+                          keyboardType: TextInputType.phone,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'กรุณากรอกหมายเลขโทรศัพท์';
+                            } else if (value.length != 10) {
+                              return 'เบอร์โทรศัพท์ต้องมี 10 หลัก';
+                            }
+                            return null;
+                          },
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color.fromARGB(0, 255, 255, 255),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Colors.black,
+                                width: 1.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        const Text('Password'),
+                        const SizedBox(height: 5),
+                        TextFormField(
+                          controller: PasswordNoCtl,
+                          obscureText: true,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'กรุณากรอกรหัสผ่าน';
+                            }
+                            return null;
+                          },
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color.fromARGB(0, 255, 255, 255),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Colors.black,
+                                width: 1.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              // ตรวจสอบฟอร์ม
+                              if (_formKey.currentState!.validate()) {
+                                // ถ้าฟอร์มผ่านการ validate
+                                login();
+                              } else {
+                                // แสดงข้อผิดพลาดถ้าฟอร์มไม่ผ่านการ validate
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please fill all fields'),
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEF702D),
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.all(
+                                    Radius.circular(10)), // มุมไม่โค้ง
+                              ),
+                            ),
+                            child: const Text('Login'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -223,12 +257,12 @@ class _LoginPageState extends State<LoginPage> {
             Provider.of<AppData>(context, listen: false)
                 .updateRider(riderProfile);
 
-                 Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => orderRiderPage(),
-            ),
-          );
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => RiderHomePage(),
+              ),
+            );
           } else {
             log("เก็บข้อมูลไม่สำเร็จ");
           }
@@ -238,6 +272,11 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         log('Failed to login: ${response.statusCode}');
         log('Response body: ${response.body}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User not found !!!!! '),
+          ),
+        );
       }
     } catch (error) {
       log('Error: $error');

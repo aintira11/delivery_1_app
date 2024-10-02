@@ -3,14 +3,14 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
-class MapSenderPage extends StatefulWidget {
-  const MapSenderPage({super.key});
+class mapReceiverPage extends StatefulWidget {
+  const mapReceiverPage({super.key});
 
   @override
-  State<MapSenderPage> createState() => _MapSenderPageState();
+  State<mapReceiverPage> createState() => _mapReceiverPageState();
 }
 
-class _MapSenderPageState extends State<MapSenderPage> {
+class _mapReceiverPageState extends State<mapReceiverPage> {
   LatLng latLng1 =
       const LatLng(15.998009549056942, 102.53815639596311); // จุดแรก
   LatLng latLng2 = const LatLng(
