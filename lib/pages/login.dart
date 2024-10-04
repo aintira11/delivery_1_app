@@ -3,10 +3,10 @@ import 'dart:developer';
 
 import 'package:delivery_1_app/config/internal_config.dart';
 import 'package:delivery_1_app/config/shared/app_data.dart';
+import 'package:delivery_1_app/pages/home.dart';
 import 'package:delivery_1_app/pages/home_user.dart';
 import 'package:delivery_1_app/pages/model/Response/login_res.dart';
 import 'package:delivery_1_app/pages/rider/homeRider.dart';
-import 'package:delivery_1_app/pages/rider/order.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
@@ -29,7 +29,18 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: const Text('Check Status'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => HomePage()),
+                  );
+          },
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(

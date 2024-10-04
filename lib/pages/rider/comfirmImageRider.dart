@@ -1,21 +1,23 @@
 import 'dart:developer';
+
+import 'package:delivery_1_app/pages/rider/homeRider.dart';
+import 'package:flutter/material.dart';
 import 'package:delivery_1_app/pages/rider/mapRider.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart'; 
-import 'package:uuid/uuid.dart'; 
+import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 
-class orderRiderPage extends StatefulWidget {
-  const orderRiderPage({super.key});
+class ImageConfirmPage extends StatefulWidget {
+  const ImageConfirmPage({super.key});
 
   @override
-  State<orderRiderPage> createState() => _orderRiderPageState();
+  State<ImageConfirmPage> createState() => _ImageConfirmPageState();
 }
 
-class _orderRiderPageState extends State<orderRiderPage> {
+class _ImageConfirmPageState extends State<ImageConfirmPage> {
   File? _image;
   String? _firebaseFileName;
 
@@ -73,8 +75,8 @@ class _orderRiderPageState extends State<orderRiderPage> {
     return WillPopScope(
       onWillPop: () async {
         // ถ้าต้องการปิดการใช้งานปุ่มย้อนกลับ Return false
-       //return false; 
-       return true; 
+        //return false;
+        return true;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -196,29 +198,21 @@ class _orderRiderPageState extends State<orderRiderPage> {
               ),
               Spacer(),
               ElevatedButton(
-                onPressed: () async {
-                  // Handle the confirmation action here
-                  await _saveImage();
-                  // ทำการบันทึกชื่อไฟล์ _firebaseFileName ลงฐานข้อมูลต่อ
-                  print('Firebase File Name: $_firebaseFileName');
-                  
-                  // หลังจากทำงานเสร็จ ให้กด next ไปหน้าใหม่แทน
-                  Navigator.pushReplacement(
+                onPressed: () {
+                  Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => mapRiderPage(), // หน้าใหม่
-                    ),
+                    MaterialPageRoute(builder: (context) => RiderHomePage()),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  minimumSize: Size(double.infinity, 50),
+                  backgroundColor: Colors.green[300], // Green confirm button
+                  minimumSize: Size(double.infinity, 50), // Button width
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
                 child: const Text(
-                  'Next',
+                  'Complete',
                   style: TextStyle(fontSize: 18),
                 ),
               ),

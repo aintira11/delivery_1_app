@@ -2,8 +2,6 @@ import 'package:delivery_1_app/config/internal_config.dart';
 import 'package:delivery_1_app/pages/home.dart';
 import 'package:delivery_1_app/pages/model/Request/memberRider_req.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'dart:developer';
