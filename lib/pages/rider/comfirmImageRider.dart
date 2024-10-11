@@ -41,7 +41,7 @@ class _ImageConfirmPageState extends State<ImageConfirmPage> {
     try {
       // ใช้ UUID สร้างชื่อไฟล์ที่ไม่ซ้ำกัน
       String fileName = '${Uuid().v4()}.jpg'; // สร้างชื่อไฟล์ที่ไม่ซ้ำกัน
-      Reference ref = FirebaseStorage.instance.ref('riderUpload/$fileName');
+      Reference ref = FirebaseStorage.instance.ref('status/$fileName');
 
       // อัปโหลดไฟล์ไปยัง Firebase Storage
       UploadTask uploadTask = ref.putFile(_image!);
@@ -222,4 +222,5 @@ class _ImageConfirmPageState extends State<ImageConfirmPage> {
       ),
     );
   }
+  
 }

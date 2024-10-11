@@ -1,13 +1,23 @@
+import 'dart:convert';
 import 'dart:developer';
+import 'package:delivery_1_app/config/internal_config.dart';
+import 'package:delivery_1_app/config/shared/app_data.dart';
+import 'package:delivery_1_app/pages/model/Response/getDataOrder_res.dart';
+import 'package:delivery_1_app/pages/model/Response/getUsers_res.dart';
 import 'package:delivery_1_app/pages/sender/Maindrawer.dart';
 import 'package:firebase_storage/firebase_storage.dart'; // นำเข้า Firebase Storage
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 
 class ConfirmImagePage extends StatefulWidget {
-  const ConfirmImagePage({super.key});
+  //final int id;
+  final int order_id;
+  final List<GetUsersRes> getUsers;
+  ConfirmImagePage({super.key, required this.order_id, required this.getUsers});
 
   @override
   State<ConfirmImagePage> createState() => _ConfirmImagePageState();
@@ -16,8 +26,23 @@ class ConfirmImagePage extends StatefulWidget {
 class _ConfirmImagePageState extends State<ConfirmImagePage> {
   File? _image;
   String? _imageUrl;
+  late UserProfile user;
+  //late List<GetUsersRes> getUsers; // ประกาศตัวแปร getUsers
+  late Future<void> loadData;
+  //List<GetDataOrderRes> dataOrder = [];
+  GetDataOrderRes? dataOrder;
+
+  @override
+  void initState() {
+    super.initState();
+    user = context.read<AppData>().user;
+    //getUsers = widget.getUsers; // ดึงข้อมูลจาก widget.getUsers มาเก็บในตัวแปร
+    DataOrder(widget.order_id);
+  }
+
   @override
   Widget build(BuildContext context) {
+    //final sentTo = getUsers.isNotEmpty ? getUsers[0] : null; // ตรวจสอบว่ามีข้อมูลใน getUsers หรือไม่
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create a Product'),
@@ -34,37 +59,62 @@ class _ConfirmImagePageState extends State<ConfirmImagePage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Sent to',
-                      style: TextStyle(
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Name: ${widget.getUsers[0].name}'),
+                    Text('Phone: ${widget.getUsers[0].phone}'),
+                    Text('Address: ${widget.getUsers[0].address}'),
+                    const SizedBox(height: 16),
+                    const Divider(), // A horizontal line divider
+                    const SizedBox(height: 8),
+                    Text(
+                      'Order Number : ${widget.order_id}',
+                      style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(height: 8),
-                    Text('Name: Yoko'),
-                    Text('Phone: 0111111111'),
-                    Text('Address: 88/1 aaa kkk mkmk'),
-                    SizedBox(height: 16),
-                    Divider(), // A horizontal line divider
-                    SizedBox(height: 8),
-                    Text(
-                      'Order Number : 90',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(height: 8),
-                    Text('ไก่ย่าง'),
-                    Text('ส้มตำ'),
-                    Text('ซอขอชู'),
+                    const SizedBox(height: 8),
+                    // แสดงข้อมูลใน dataOrder
+                    if (dataOrder?.items != null &&
+                        dataOrder!
+                            .items.isNotEmpty) // ตรวจสอบ dataOrder และ items
+                      Column(
+                        children: dataOrder!
+                            .items // ใช้ ! เพราะเราตรวจสอบ null ไปแล้ว
+                            .map((item) => Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                     Image.network(item.image,
+                                        width: 50), // แสดงภาพรายการ
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text(item.detail,
+                                          style: const TextStyle(
+                                              fontSize: 16)),
+                                    ), // แสดงชื่อรายการ
+                                    const SizedBox(height: 4),
+                                   
+                                    const SizedBox(height: 8),
+                                  ],
+                                ))
+                            .toList(),
+                      )
+                    else
+                      const Text('No items found for this order'),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Camera button and photo display
             const Center(
               child: Text(
@@ -105,11 +155,11 @@ class _ConfirmImagePageState extends State<ConfirmImagePage> {
             const SizedBox(height: 16),
             Center(
               child: ElevatedButton(
-                onPressed: _pickImage,  // Open camera
+                onPressed: _pickImage, // Open camera
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange, // Button color
                   //minimumSize: Size(double.infinity, 50), // Button width
-              
+
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -124,11 +174,8 @@ class _ConfirmImagePageState extends State<ConfirmImagePage> {
             // Confirm Button
             ElevatedButton(
               onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>  MainDrawerPage(value:2)),
-                  );
+                status1(widget.order_id);
+               
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green[300], // Green confirm button
@@ -147,7 +194,8 @@ class _ConfirmImagePageState extends State<ConfirmImagePage> {
       ),
     );
   }
-void _pickImage() async {
+
+  void _pickImage() async {
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? pickedFile =
@@ -171,7 +219,7 @@ void _pickImage() async {
     try {
       log("filename");
       String fileName = '${Uuid().v4()}.jpg'; // เปลี่ยนชื่อไฟล์ให้ไม่ซ้ำ
-      Reference ref = FirebaseStorage.instance.ref('product/$fileName');
+      Reference ref = FirebaseStorage.instance.ref('status/$fileName');
 
       // อัปโหลดไฟล์ไปยัง Firebase Storage
       UploadTask uploadTask = ref.putFile(image);
@@ -189,4 +237,93 @@ void _pickImage() async {
       log('Error uploading image: $e');
     }
   }
+
+  void DataOrder(int idx) async {
+    try {
+      final res = await http.get(
+        Uri.parse("$API_ENDPOINT/sender/getDataOrder?order_id=$idx"),
+        headers: {"Content-Type": "application/json; charset=utf-8"},
+      );
+
+      if (res.statusCode == 200) {
+        // แปลง JSON จาก Response เป็น Map
+        Map<String, dynamic> jsonData = jsonDecode(res.body);
+
+        // ตรวจสอบว่า 'items' มีอยู่
+        List<dynamic> itemsData = jsonData['items'];
+
+        // แปลง itemsData เป็น List ของ Item
+        List<Item> fetchedItems = itemsData.map((item) {
+          return Item.fromJson(item); // ใช้ Item แทน GetDataOrderRes
+        }).toList();
+
+        // สร้าง GetDataOrderRes จากข้อมูลที่ได้
+        GetDataOrderRes dataOrderRes = GetDataOrderRes(
+          orderId: jsonData['order_id'],
+          items: fetchedItems,
+        );
+
+        // เก็บข้อมูลที่ได้ลงในตัวแปร dataOrder และอัปเดต UI
+        setState(() {
+          dataOrder = dataOrderRes; // เก็บข้อมูลในรูปแบบ GetDataOrderRes
+        });
+
+        // Log ข้อมูลใน dataOrder
+        log('DataOrder: ${jsonEncode(dataOrder)}'); // แสดงข้อมูลในรูปแบบ JSON
+      } else {
+        log('Error fetching users: ${res.statusCode}');
+      }
+    } catch (e) {
+      log('Error: $e');
+    }
+  }
+  
+  Future<void> status1(int id) async {
+    log('order_id: $id');
+    log('Image URL: $_imageUrl');
+     if (_imageUrl == null) {
+      // Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
+      //     snackPosition: SnackPosition.TOP);
+      const SnackBar(content: Text('ลืมกดถ่ายภาพ 🤔.'));
+    }
+    // สร้างข้อมูล JSON ที่ต้องการส่ง
+    try {
+      final body = jsonEncode({
+        'order_id': id,
+        'image_status_1': _imageUrl,
+      });
+      log(body);
+      // ส่งคำขอ POST พร้อม body
+      final res = await http.put(
+        Uri.parse("$API_ENDPOINT/sender/addStatus_1"),
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+        body: body, // ส่งข้อมูลใน body
+      );
+
+      if (res.statusCode == 200) {
+        Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => MainDrawerPage(value: 2)),
+                );
+        final status = jsonDecode(res.body); // แปลง JSON เป็น Map
+         
+        // ตรวจสอบว่ามีการส่งกลับ หรือไม่
+        if (status.containsKey('message')) {
+         
+          log('Item added with order ID: ${status['message']}');
+          
+        } else {
+          log('No order_id found in response');
+        }
+      } else {
+        log('Error creating order: ${res.statusCode}');
+      }
+    } catch (e) {
+      log('Error: $e');
+    }
+  }
+
 }

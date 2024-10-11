@@ -79,7 +79,7 @@ class _orderRiderPageState extends State<orderRiderPage> {
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false, // ปิดการแสดงไอคอน Back
-          title: Text('Order Confirmation'),
+          title: const Text('Order Confirmation'),
           backgroundColor: Colors.orange,
         ),
         body: Padding(

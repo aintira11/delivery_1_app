@@ -128,7 +128,7 @@ class _senderHomaPageState extends State<senderHomaPage> {
                                         context,
                                         MaterialPageRoute(
                                             builder: (context) =>
-                                                const prodactPage()),
+                                                 prodactPage(id: user.userId)),
                                       );
                                     },
                                   ),
