@@ -9,7 +9,7 @@ List<DatauserRes> datauserResFromJson(String str) => List<DatauserRes>.from(json
 String datauserResToJson(List<DatauserRes> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
 class DatauserRes {
-    int userId;
+    // int userId;
     String name;
     String password;
     String phone;
@@ -20,7 +20,7 @@ class DatauserRes {
     String userType;
 
     DatauserRes({
-        required this.userId,
+        // required this.userId,
         required this.name,
         required this.password,
         required this.phone,
@@ -32,7 +32,7 @@ class DatauserRes {
     });
 
     factory DatauserRes.fromJson(Map<String, dynamic> json) => DatauserRes(
-        userId: json["user_id"],
+        // userId: json["user_id"] ?? 0,
         name: json["name"],
         password: json["password"],
         phone: json["phone"],
@@ -44,7 +44,7 @@ class DatauserRes {
     );
 
     Map<String, dynamic> toJson() => {
-        "user_id": userId,
+        // "user_id": userId,
         "name": name,
         "password": password,
         "phone": phone,

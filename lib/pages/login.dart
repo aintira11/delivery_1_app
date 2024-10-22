@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -183,114 +184,212 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void login() async {
-    String phone = PhoneNoCtl.text.trim();
-    String password = PasswordNoCtl.text.trim();
+  // void login() async {
+  //   String phone = PhoneNoCtl.text.trim();
+  //   String password = PasswordNoCtl.text.trim();
 
-    if (phone.isEmpty || password.isEmpty) {
-      // แสดงข้อความแจ้งเตือนเมื่อเบอร์โทรศัพท์หรือรหัสผ่านว่างเปล่า
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Error'),
-          content: const Text(
-              'Phone number and password cannot be empty or contain only spaces'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
+  //   if (phone.isEmpty || password.isEmpty) {
+  //     // แสดงข้อความแจ้งเตือนเมื่อเบอร์โทรศัพท์หรือรหัสผ่านว่างเปล่า
+  //     showDialog(
+  //       context: context,
+  //       builder: (context) => AlertDialog(
+  //         title: const Text('Error'),
+  //         content: const Text(
+  //             'Phone number and password cannot be empty or contain only spaces'),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () => Navigator.pop(context),
+  //             child: const Text('OK'),
+  //           ),
+  //         ],
+  //       ),
+  //     );
+  //     return;
+  //   }
 
-    // เตรียมข้อมูลสำหรับส่งไปยัง backend
-    var data = {
-      "phone": phone,
-      "password": password,
-    };
+  //   // เตรียมข้อมูลสำหรับส่งไปยัง backend
+  //   var data = {
+  //     "phone": phone,
+  //     "password": password,
+  //   };
 
-    try {
-      final response = await http.post(
-        Uri.parse("$API_ENDPOINT/user/login"),
-        headers: {"Content-Type": "application/json; charset=utf-8"},
-        body: jsonEncode(data),
-      );
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse("$API_ENDPOINT/user/login"),
+  //       headers: {"Content-Type": "application/json; charset=utf-8"},
+  //       body: jsonEncode(data),
+  //     );
 
-      if (response.statusCode == 200) {
-        // แปลงข้อมูลที่ได้รับจาก JSON เป็น Map
-        var jsonResponse = jsonDecode(response.body);
-        // สร้าง LoginRes จาก Map
-        LoginRes loginUser = LoginRes.fromJson(jsonResponse);
+  //     if (response.statusCode == 200) {
+  //       // แปลงข้อมูลที่ได้รับจาก JSON เป็น Map
+  //       var jsonResponse = jsonDecode(response.body);
+  //       // สร้าง LoginRes จาก Map
+  //       LoginRes loginUser = LoginRes.fromJson(jsonResponse);
 
-        log('ID: ${loginUser.id}');
-        log('Username: ${loginUser.username}');
-        log('Phone: ${loginUser.phone}');
-        log('User Type: ${loginUser.userType}');
+  //       log('ID: ${loginUser.id}');
+  //       log('Username: ${loginUser.username}');
+  //       log('Phone: ${loginUser.phone}');
+  //       log('User Type: ${loginUser.userType}');
 
-        // ทำงานต่อไปตามประเภทของผู้ใช้
-        int userId = loginUser.id;
-        String userType = loginUser.userType;
+  //       // ทำงานต่อไปตามประเภทของผู้ใช้
+  //       int userId = loginUser.id;
+  //       String userType = loginUser.userType;
 
-        if (userType == 'user') {
-          final userProfileResponse = await http.get(
-            Uri.parse("$API_ENDPOINT/user/user_id?user_id=$userId"),
-            headers: {"Content-Type": "application/json; charset=utf-8"},
-          );
+  //       if (userType == 'user') {
+  //         final userProfileResponse = await http.get(
+  //           Uri.parse("$API_ENDPOINT/user/user_id?user_id=$userId"),
+  //           headers: {"Content-Type": "application/json; charset=utf-8"},
+  //         );
 
-          if (userProfileResponse.statusCode == 200) {
-            UserProfile userProfile =
-                UserProfile.fromJson(jsonDecode(userProfileResponse.body)[0]);
-            Provider.of<AppData>(context, listen: false)
-                .updateUser(userProfile);
-          } else {
-            log("เก็บข้อมูลไม่สำเร็จ");
-          }
+  //         if (userProfileResponse.statusCode == 200) {
+  //           UserProfile userProfile =
+  //               UserProfile.fromJson(jsonDecode(userProfileResponse.body)[0]);
+  //           Provider.of<AppData>(context, listen: false)
+  //               .updateUser(userProfile);
+  //         } else {
+  //           log("เก็บข้อมูลไม่สำเร็จ");
+  //         }
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HomeUserPage(),
-            ),
-          );
-          log('This user is a user.');
-        } else if (userType == 'rider') {
-          final riderProfileResponse = await http.get(
-            Uri.parse("$API_ENDPOINT/rider/rider_id?rider_id=$userId"),
-            headers: {"Content-Type": "application/json; charset=utf-8"},
-          );
+  //         Navigator.pushReplacement(
+  //           context,
+  //           MaterialPageRoute(
+  //             builder: (context) => HomeUserPage(),
+  //           ),
+  //         );
+  //         log('This user is a user.');
+  //       } else if (userType == 'rider') {
+  //         final riderProfileResponse = await http.get(
+  //           Uri.parse("$API_ENDPOINT/rider/rider_id?rider_id=$userId"),
+  //           headers: {"Content-Type": "application/json; charset=utf-8"},
+  //         );
 
-          if (riderProfileResponse.statusCode == 200) {
-            RiderProfile riderProfile =
-                RiderProfile.fromJson(jsonDecode(riderProfileResponse.body)[0]);
-            Provider.of<AppData>(context, listen: false)
-                .updateRider(riderProfile);
+  //         if (riderProfileResponse.statusCode == 200) {
+  //           RiderProfile riderProfile =
+  //               RiderProfile.fromJson(jsonDecode(riderProfileResponse.body)[0]);
+  //           Provider.of<AppData>(context, listen: false)
+  //               .updateRider(riderProfile);
 
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => RiderHomePage(),
-              ),
-            );
-          } else {
-            log("เก็บข้อมูลไม่สำเร็จ");
-          }
+  //           Navigator.pushReplacement(
+  //             context,
+  //             MaterialPageRoute(
+  //               builder: (context) => RiderHomePage(),
+  //             ),
+  //           );
+  //         } else {
+  //           log("เก็บข้อมูลไม่สำเร็จ");
+  //         }
 
-          log('This user is a normal rider.');
-        }
-      } else {
-        log('Failed to login: ${response.statusCode}');
-        log('Response body: ${response.body}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User not found !!!!! '),
+  //         log('This user is a normal rider.');
+  //       }
+  //     } else {
+  //       log('Failed to login: ${response.statusCode}');
+  //       log('Response body: ${response.body}');
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text('User not found !!!!! '),
+  //         ),
+  //       );
+  //     }
+  //   } catch (error) {
+  //     log('Error: $error');
+  //   }
+  // }
+
+
+void login() async {
+  String phone = PhoneNoCtl.text.trim();
+  String password = PasswordNoCtl.text.trim();
+
+  if (phone.isEmpty || password.isEmpty) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: const Text(
+            'Phone number and password cannot be empty or contain only spaces'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    return;
+  }
+
+  try {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('Users')
+        .where('phone', isEqualTo: phone)
+        .where('password', isEqualTo: password)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      var userDoc = querySnapshot.docs.first.data() as Map<String, dynamic>;
+      String documentId = querySnapshot.docs.first.id;
+
+      String userType = userDoc['type'] ?? '';
+
+      if (userType == 'user') {
+        UserProfile userProfile = UserProfile(
+          id: documentId, // แก้ไขการเข้าถึงค่า 'id'
+          name: userDoc['name'] ?? '', // แก้ไขการเข้าถึงค่า 'name'
+          phone: userDoc['phone'] ?? '', // แก้ไขการเข้าถึงค่า 'phone'
+          address: userDoc['address'] ?? '', // แก้ไขการเข้าถึงค่า 'address'
+          image: userDoc['image'] ?? '', // แก้ไขการเข้าถึงค่า 'image'
+          latitude: double.tryParse(userDoc['latitude']?.toString() ?? '0.0') ?? 0.0,
+          longitude: double.tryParse(userDoc['longitude']?.toString() ?? '0.0') ?? 0.0,
+          type: userDoc['type'] ?? '',
+        );
+
+        Provider.of<AppData>(context, listen: false).updateUser(userProfile);
+
+        log('Document ID: $documentId');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomeUserPage(),
           ),
         );
+
+        log('This user is a user.');
+      } else if (userType == 'rider') {
+        RiderProfile riderProfile = RiderProfile(
+          id: documentId, // แก้ไขการเข้าถึงค่า 'id'
+          name: userDoc['name'] ?? '', // แก้ไขการเข้าถึงค่า 'name'
+          phone: userDoc['phone'] ?? '', // แก้ไขการเข้าถึงค่า 'phone'
+          image: userDoc['image'] ?? '', // แก้ไขการเข้าถึงค่า 'image'
+          vehicle: userDoc['vehicle'] ?? '', // แก้ไขการเข้าถึงค่า 'vehicle'
+          type: userDoc['type'] ?? '',
+        );
+
+        Provider.of<AppData>(context, listen: false).updateRider(riderProfile);
+
+        log('Document ID: $documentId');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RiderHomePage(),
+          ),
+        );
+
+        log('This user is a rider.');
+      } else {
+        log('Unknown user type');
       }
-    } catch (error) {
-      log('Error: $error');
+    } else {
+      log('User not found or incorrect password');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ไม่พบผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!'),
+        ),
+      );
     }
+  } catch (error) {
+    log('Error: $error');
   }
+}
+
+
 }

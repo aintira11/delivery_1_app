@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:delivery_1_app/config/internal_config.dart';
 import 'package:delivery_1_app/config/shared/app_data.dart';
 import 'package:delivery_1_app/pages/model/Response/AddItem_res.dart';
@@ -14,7 +15,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class prodactPage extends StatefulWidget {
-  final int id;
+  final String id;
   prodactPage({super.key, required this.id});
 
   @override
@@ -24,7 +25,7 @@ class prodactPage extends StatefulWidget {
 class _prodactPageState extends State<prodactPage> {
   File? _image;
   String? _imageUrl;
-  int? getOrder_id;
+  String? getOrder_id;
   TextEditingController detailNoCtl = TextEditingController();
 
   List<GetUsersRes> getUsers = []; // ตัวแปรเก็บข้อมูลจาก API
@@ -38,7 +39,7 @@ class _prodactPageState extends State<prodactPage> {
     user = context.read<AppData>().user;
 
     loadData = getMemberbyID(widget.id);
-    order(user.userId, widget.id);
+    order(widget.id);
   }
 
   @override
@@ -46,7 +47,29 @@ class _prodactPageState extends State<prodactPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Create a product'),
-        //leading: Icon(Icons.arrow_back),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () async {
+            // เช็คว่า getOrder_id ไม่เป็น null
+            if (getOrder_id != null) {
+              try {
+                // อ้างอิงไปยัง collection "Orders"
+                DocumentReference orderDocRef = FirebaseFirestore.instance
+                    .collection('Orders')
+                    .doc(getOrder_id);
+
+                // ลบเอกสารที่เกี่ยวข้องกับ order_id
+                await orderDocRef.delete();
+                log('Order with ID: $getOrder_id deleted successfully.');
+              } catch (e) {
+                log('Error deleting order: $e');
+              }
+            }
+
+            // กลับไปยังหน้าก่อนหน้า
+            Navigator.pop(context);
+          },
+        ),
       ),
       body: FutureBuilder(
           future: loadData,
@@ -198,7 +221,7 @@ class _prodactPageState extends State<prodactPage> {
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
                                   child: Image.network(
-                                    item.image, // ดึง URL รูปจาก item.image
+                                    "${item.image}", // ดึง URL รูปจาก item.image
                                     height: 50,
                                     width: 50, // กำหนดขนาดรูปภาพ
                                     fit: BoxFit.cover,
@@ -213,7 +236,7 @@ class _prodactPageState extends State<prodactPage> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        item.detail, // แสดงรายละเอียดสินค้า
+                                        '${item.detail}', // แสดงรายละเอียดสินค้า
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -221,7 +244,7 @@ class _prodactPageState extends State<prodactPage> {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        'Order ID: ${item.orderId}', // แสดง Order ID
+                                        'Order ID: ${item.order_id}', // แสดง Order ID
                                         style: const TextStyle(fontSize: 14),
                                       ),
                                     ],
@@ -249,10 +272,9 @@ class _prodactPageState extends State<prodactPage> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => ConfirmImagePage(
-                                  //id: widget.id, // ส่งค่า id ที่รับมาจากหน้าที่แล้ว
-                                  order_id: getOrder_id?.toInt() ??
-                                      0, // ส่ง order_id ที่เก็บไว้ ถ้าเป็น null ให้ใช้ค่า 0 แทน
-                                  getUsers: getUsers),
+                                order_id: getOrder_id ?? "",
+                                getUsers: getUsers,
+                              ),
                             ),
                           );
                         }
@@ -321,121 +343,237 @@ class _prodactPageState extends State<prodactPage> {
     }
   }
 
-  Future<void> getMemberbyID(int id) async {
-    int idx = id;
-    log('Requested user ID: $idx');
+  Future<void> getMemberbyID(String id) async {
+    log('Requested user ID: $id');
     try {
-      final res = await http.get(
-        Uri.parse("$API_ENDPOINT/user/user_id?user_id=$idx"),
-        headers: {"Content-Type": "application/json; charset=utf-8"},
-      );
+      // ดึงข้อมูลจาก Firestore โดยใช้ Document ID
+      DocumentSnapshot doc =
+          await FirebaseFirestore.instance.collection('Users').doc(id).get();
 
-      if (res.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(res.body);
+      if (doc.exists) {
+        // แปลงข้อมูลจาก DocumentSnapshot เป็น GetUsersRes
+        GetUsersRes user =
+            GetUsersRes.fromJson(doc.data() as Map<String, dynamic>, doc.id);
 
-        List<GetUsersRes> fetchedUsers = data.map((item) {
-          return GetUsersRes.fromJson(item);
-        }).toList();
-
-        // เก็บข้อมูลที่ได้ลงในตัวแปร allUsers และอัปเดต UI
+        // เก็บข้อมูลที่ได้ลงในตัวแปร getUsers และอัปเดต UI
         setState(() {
-          getUsers = fetchedUsers;
+          getUsers = [user]; // แปลงให้เป็น List
         });
       } else {
-        log('Error fetching users: ${res.statusCode}');
+        log('User not found for ID: $id');
       }
     } catch (e) {
-      log('Error: $e');
+      log('Error fetching user: $e');
     }
   }
 
 //สร้าง order id
-  void order(int userId, int receiverId) async {
-    log('sender_id user ID: $userId');
-    log('receiver_id user ID: $receiverId');
+  // void order(int userId, int receiverId) async {
+  //   log('sender_id user ID: $userId');
+  //   log('receiver_id user ID: $receiverId');
 
-    try {
-      // สร้างข้อมูล JSON ที่ต้องการส่ง
-      final body = jsonEncode({
-        'sender_id': userId,
-        'receiver_id': receiverId,
-      });
+  //   try {
+  //     // สร้างข้อมูล JSON ที่ต้องการส่ง
+  //     final body = jsonEncode({
+  //       'sender_id': userId,
+  //       'receiver_id': receiverId,
+  //     });
 
-      // ส่งคำขอ POST พร้อม body
-      final res = await http.post(
-        Uri.parse("$API_ENDPOINT/sender/createOrder"),
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-        body: body, // ส่งข้อมูลใน body
-      );
+  //     // ส่งคำขอ POST พร้อม body
+  //     final res = await http.post(
+  //       Uri.parse("$API_ENDPOINT/sender/createOrder"),
+  //       headers: {
+  //         "Content-Type": "application/json; charset=utf-8",
+  //       },
+  //       body: body, // ส่งข้อมูลใน body
+  //     );
 
-      if (res.statusCode == 201) {
-        // รับ order_id จาก response โดยเข้าถึงค่าจากวัตถุ
-        final orderId = jsonDecode(res.body)['order_id'];
-        log('Order ID: $orderId'); // จะเป็นค่าตรงๆ ตอนนี้
-        setState(() {
-          getOrder_id = orderId; // อัปเดตสถานะด้วย order ID
+  //     if (res.statusCode == 201) {
+  //       // รับ order_id จาก response โดยเข้าถึงค่าจากวัตถุ
+  //       final orderId = jsonDecode(res.body)['order_id'];
+  //       log('Order ID: $orderId'); // จะเป็นค่าตรงๆ ตอนนี้
+  //       setState(() {
+  //         getOrder_id = orderId; // อัปเดตสถานะด้วย order ID
+  //       });
+  //     } else {
+  //       log('Error creating order: ${res.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     log('Error: $e');
+  //   }
+  // }
+void order(String receiverId) async {
+  log('sender_id user ID: $user');
+  log('receiver_id user ID: $receiverId');
+
+  try {
+    // สร้างข้อมูลที่ต้องการบันทึกใน Cloud Firestore
+    final orderData = {
+      'sender_id': user.id,
+      'receiver_id': receiverId,
+      'rider_id': null,
+      'status_history': [
+        {
+          'status': 'pending',
+          // 'timestamp': Timestamp.now(),
+          'note': 'Order created',
+          'image_url_1': null,
+          'image_url_2': null,
+          'image_url_4': null,
+        }
+      ],
+      'items': [] // สร้าง array ว่างสำหรับเก็บข้อมูลสินค้า
+    };
+
+    // เพิ่มข้อมูลลงใน collection 'Orders'
+    final docRef =
+        await FirebaseFirestore.instance.collection('Orders').add(orderData);
+
+    // รับ order_id ที่ได้จาก Firestore
+    final orderId = docRef.id;
+    log('Order ID: $orderId'); // จะแสดงค่าของเอกสารที่สร้างขึ้น
+    setState(() {
+      getOrder_id = orderId; // อัปเดตสถานะด้วย order ID
+    });
+  } catch (e) {
+    log('Error: $e');
+  }
+}
+
+
+  // void AddItem() async {
+  //   if (getOrder_id == null) {
+  //     log('Order ID is null');
+  //     return; // ออกจากฟังก์ชันถ้าหาก order_id เป็น null
+  //   }
+  //   String? order_id = getOrder_id;
+  //   String detail = detailNoCtl.text.trim();
+  //   if (_imageUrl == null) {
+  //     // Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
+  //     //     snackPosition: SnackPosition.TOP);
+  //     const SnackBar(content: Text('เลือกสักรุปสิ 🤔.'));
+  //   }
+  //   log('order_id: $order_id');
+  //   log('detail: $detail');
+  //   log('Image URL: $_imageUrl');
+  //   // สร้างข้อมูล JSON ที่ต้องการส่ง
+  //   try {
+  //     final body = jsonEncode({
+  //       'order_id': order_id,
+  //       'detail': detail,
+  //       'image': _imageUrl,
+  //     });
+
+  //     // ส่งคำขอ POST พร้อม body
+  //     final res = await http.post(
+  //       Uri.parse("$API_ENDPOINT/sender/addItem"),
+  //       headers: {
+  //         "Content-Type": "application/json; charset=utf-8",
+  //       },
+  //       body: body, // ส่งข้อมูลใน body
+  //     );
+
+  //     if (res.statusCode == 201) {
+  //       final dataItem = jsonDecode(res.body); // แปลง JSON เป็น Map
+
+  //       // ตรวจสอบว่ามีการส่งกลับ order_id หรือไม่
+  //       if (dataItem.containsKey('order_id')) {
+  //         // แสดงผล order_id หรือข้อมูลที่คุณต้องการใช้
+  //         log('Item added with order ID: ${dataItem['order_id']}');
+  //         // หากคุณต้องการเก็บข้อมูล item ใหม่ใน getAdd_item
+  //         setState(() {
+  //           getAdd_item.add(GetAddItemRes.fromJson(dataItem));
+  //         });
+  //       } else {
+  //         log('No order_id found in response');
+  //       }
+  //     } else {
+  //       log('Error creating order: ${res.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     log('Error: $e');
+  //   }
+  // }
+  void AddItem() async {
+  if (getOrder_id == null) {
+    log('Order ID is null');
+    return; // ออกจากฟังก์ชันถ้าหาก order_id เป็น null
+  }
+  
+  String? order_id = getOrder_id;
+  String detail = detailNoCtl.text.trim();
+  if (_imageUrl == null) {
+    const SnackBar(content: Text('เลือกสักรูปสิ 🤔.'));
+    return; // ออกจากฟังก์ชันหากไม่ได้เลือกภาพ
+  }
+
+  log('order_id: $order_id');
+  log('detail: $detail');
+  log('Image URL: $_imageUrl');
+
+  try {
+    // อ้างอิงไปยัง collection "OrderItem"
+    CollectionReference orderItemCollection =
+        FirebaseFirestore.instance.collection('OrderItem');
+
+    // สร้างข้อมูลที่ต้องการบันทึกในรูปแบบของ Map
+    Map<String, dynamic> itemData = {
+      //'order_id': order_id, // ไม่จำเป็นต้องเก็บ order_id ที่นี่
+      'detail': detail,
+      'image': _imageUrl,
+      //'timestamp': FieldValue.serverTimestamp(), // บันทึกเวลาสร้าง
+    };
+
+    // บันทึกข้อมูลไอเท็มลง Firestore
+    DocumentReference itemDocRef = await orderItemCollection.add(itemData);
+    log('Item added with ID: ${itemDocRef.id}');
+
+    // อ้างอิงไปยังเอกสารใน Orders
+    DocumentReference orderDocRef = FirebaseFirestore.instance
+        .collection('Orders')
+        .doc(order_id);
+
+    // ดึงข้อมูลของเอกสาร Orders
+    DocumentSnapshot orderDocSnapshot = await orderDocRef.get();
+
+    // ตรวจสอบว่า array items มีข้อมูลหรือไม่
+    if (orderDocSnapshot.exists) {
+      List<dynamic> items = orderDocSnapshot['items'] ?? []; // ดึงข้อมูล items หรือใช้ array ว่างถ้าไม่มี
+
+      if (items.isEmpty) {
+        // หากไม่มีไอเท็มใน array ให้เพิ่มไอเท็มใหม่
+        await orderDocRef.update({
+          'items': [itemData], // สร้าง array ใหม่ที่มีไอเท็ม
         });
       } else {
-        log('Error creating order: ${res.statusCode}');
+        // หากมีไอเท็มอยู่แล้ว ให้เพิ่มไอเท็มใหม่ลงไปใน array
+        await orderDocRef.update({
+          'items': FieldValue.arrayUnion([itemData]), // เพิ่มไอเท็มใหม่ใน array
+        });
       }
-    } catch (e) {
-      log('Error: $e');
     }
-  }
 
-  void AddItem() async {
-    if (getOrder_id == null) {
-      log('Order ID is null');
-      return; // ออกจากฟังก์ชันถ้าหาก order_id เป็น null
-    }
-    int? order_id = getOrder_id;
-    String detail = detailNoCtl.text.trim();
-    if (_imageUrl == null) {
-      // Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
-      //     snackPosition: SnackPosition.TOP);
-      const SnackBar(content: Text('เลือกสักรุปสิ 🤔.'));
-    }
-    log('order_id: $order_id');
-    log('detail: $detail');
-    log('Image URL: $_imageUrl');
-    // สร้างข้อมูล JSON ที่ต้องการส่ง
-    try {
-      final body = jsonEncode({
-        'order_id': order_id,
-        'detail': detail,
-        'image': _imageUrl,
+    // ดึงข้อมูลของเอกสารที่เพิ่งแอดไป
+    DocumentSnapshot newItem = await itemDocRef.get();
+
+    // แปลงข้อมูลจาก Firestore เป็น Object ที่ใช้
+    if (newItem.exists) {
+      setState(() {
+        getAdd_item.add(GetAddItemRes(
+          order_id: newItem.id, // ใช้ document ID ของ order
+          detail: detail, // ใช้ detail ที่กรอก
+          image: _imageUrl,
+          id: itemDocRef.id, // ID ของเอกสารที่บันทึกใน Firestore
+        ));
       });
-
-      // ส่งคำขอ POST พร้อม body
-      final res = await http.post(
-        Uri.parse("$API_ENDPOINT/sender/addItem"),
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-        body: body, // ส่งข้อมูลใน body
-      );
-
-      if (res.statusCode == 201) {
-        final dataItem = jsonDecode(res.body); // แปลง JSON เป็น Map
-
-        // ตรวจสอบว่ามีการส่งกลับ order_id หรือไม่
-        if (dataItem.containsKey('order_id')) {
-          // แสดงผล order_id หรือข้อมูลที่คุณต้องการใช้
-          log('Item added with order ID: ${dataItem['order_id']}');
-          // หากคุณต้องการเก็บข้อมูล item ใหม่ใน getAdd_item
-          setState(() {
-            getAdd_item.add(GetAddItemRes.fromJson(dataItem));
-          });
-        } else {
-          log('No order_id found in response');
-        }
-      } else {
-        log('Error creating order: ${res.statusCode}');
-      }
-    } catch (e) {
-      log('Error: $e');
+      log('New item data: ${newItem.data()}');
+    } else {
+      log('Newly added item not found');
     }
+  } catch (e) {
+    log('Error: $e');
   }
+}
+
+
 }

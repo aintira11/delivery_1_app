@@ -31,7 +31,7 @@ class AppData with ChangeNotifier {
 }
 
 class UserProfile {
-  int userId;
+  String id;
   String name;
   String password;
   String phone;
@@ -39,10 +39,10 @@ class UserProfile {
   String image;
   double latitude;
   double longitude;
-  String userType;
+  String type;
 
   UserProfile({
-    this.userId = 0,
+    this.id = '',
     this.name = '',
     this.password = '',
     this.phone = '',
@@ -50,12 +50,12 @@ class UserProfile {
     this.image = '',
     this.latitude = 0.0,
     this.longitude = 0.0,
-    this.userType = '',
+    this.type = '',
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      userId: json['user_id'] ?? 0,
+      id: json['id'] ?? '',
       name: json['name'] ?? '',
       password: json['password'] ?? '',
       phone: json['phone'] ?? '',
@@ -63,13 +63,13 @@ class UserProfile {
       image: json['image'] ?? '',
       latitude: json['latitude']?.toDouble() ?? 0.0,
       longitude: json['longitude']?.toDouble() ?? 0.0,
-      userType: json['user_type'] ?? '',
+      type: json['type'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'user_id': userId,
+      'id': id,
       'name': name,
       'password': password,
       'phone': phone,
@@ -77,51 +77,59 @@ class UserProfile {
       'image': image,
       'latitude': latitude,
       'longitude': longitude,
-      'user_type': userType,
+      'type': type,
     };
+  }
+   @override
+  String toString() {
+    return 'UserProfile(id: $id, name: $name, phone: $phone)';
   }
 }
 
 class RiderProfile {
-  int riderId;
-  String riderName;
-  String riderPassword;
-  String riderPhone;
-  String riderImage;
+  String id;
+  String name;
+  String password;
+  String phone;
+  String image;
   String vehicle;
-  String riderType;
+  String type;
 
   RiderProfile({
-    this.riderId = 0,
-    this.riderName = '',
-    this.riderPassword = '',
-    this.riderPhone = '',
-    this.riderImage = '',
+    this.id = '',
+    this.name = '',
+    this.password = '',
+    this.phone = '',
+    this.image = '',
     this.vehicle = '',
-    this.riderType = '',
+    this.type = '',
   });
 
   factory RiderProfile.fromJson(Map<String, dynamic> json) {
     return RiderProfile(
-      riderId: json['rider_id'] ?? 0,
-      riderName: json['rider_name'] ?? '',
-      riderPassword: json['rider_password'] ?? '',
-      riderPhone: json['rider_phone'] ?? '',
-      riderImage: json['rider_image'] ?? '',
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      password: json['password'] ?? '',
+      phone: json['phone'] ?? '',
+      image: json['image'] ?? '',
       vehicle: json['vehicle'] ?? '',
-      riderType: json['rider_type'] ?? '',
+      type: json['type'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'rider_id': riderId,
-      'rider_name': riderName,
-      'rider_password': riderPassword,
-      'rider_phone': riderPhone,
-      'rider_image': riderImage,
+      'id': id,
+      'name': name,
+      'password': password,
+      'phone': phone,
+      'image': image,
       'vehicle': vehicle,
-      'rider_type': riderType,
+      'type': type,
     };
+  }
+   @override
+  String toString() {
+    return 'UserProfile(id: $id, name: $name, phone: $phone)';
   }
 }

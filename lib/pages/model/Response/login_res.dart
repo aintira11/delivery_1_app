@@ -9,27 +9,27 @@ List<LoginRes> loginResFromJson(String str) => List<LoginRes>.from(json.decode(s
 String loginResToJson(List<LoginRes> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
 class LoginRes {
-    int id;
+    //int id;
     String username;
     String phone;
     String userType;
 
     LoginRes({
-        required this.id,
+        //required this.id,
         required this.username,
         required this.phone,
         required this.userType,
     });
 
     factory LoginRes.fromJson(Map<String, dynamic> json) => LoginRes(
-        id: json["id"],
+        //id: json["id"],
         username: json["username"],
         phone: json["phone"],
         userType: json["user_type"],
     );
 
     Map<String, dynamic> toJson() => {
-        "id": id,
+        //"id": id,
         "username": username,
         "phone": phone,
         "user_type": userType,

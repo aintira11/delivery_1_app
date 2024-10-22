@@ -9,29 +9,34 @@ GetAddItemRes getAddItemResFromJson(String str) => GetAddItemRes.fromJson(json.d
 String getAddItemResToJson(GetAddItemRes data) => json.encode(data.toJson());
 
 class GetAddItemRes {
-    int itemId;
-    int orderId;
-    String detail;
-    String image;
+  String? order_id;
+  String? detail;
+  String? image;
+  String? id;
 
-    GetAddItemRes({
-        required this.itemId,
-        required this.orderId,
-        required this.detail,
-        required this.image,
-    });
+  GetAddItemRes({
+    required this.order_id,
+    required this.detail,
+    required this.image,
+    this.id,
+  });
 
-    factory GetAddItemRes.fromJson(Map<String, dynamic> json) => GetAddItemRes(
-        itemId: json["item_id"],
-        orderId: json["order_id"],
-        detail: json["detail"],
-        image: json["image"],
+  // Factory method สำหรับสร้าง Object จาก JSON (Map<String, dynamic>)
+  factory GetAddItemRes.fromJson(Map<String, dynamic> json, {String? id}) {
+    return GetAddItemRes(
+      order_id: json['order_id'] as String?,
+      detail: json['detail'] as String?,
+      image: json['image'] as String?,
+      id: id, // กำหนด ID ถ้าส่งมาจาก DocumentReference
     );
+  }
 
-    Map<String, dynamic> toJson() => {
-        "item_id": itemId,
-        "order_id": orderId,
-        "detail": detail,
-        "image": image,
+  // Method สำหรับแปลง Object เป็น JSON (Map<String, dynamic>)
+  Map<String, dynamic> toJson() {
+    return {
+      'order_id': order_id,
+      'detail': detail,
+      'image': image,
     };
+  }
 }

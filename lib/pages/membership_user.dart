@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:delivery_1_app/config/internal_config.dart';
 import 'package:delivery_1_app/pages/home.dart';
 import 'package:delivery_1_app/pages/model/Request/memberUser_req.dart';
@@ -14,6 +15,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
 import 'package:geocoding/geocoding.dart'; // เพิ่มการนำเข้า geocoding
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class MemberUserPage extends StatefulWidget {
   const MemberUserPage({super.key});
@@ -31,6 +34,7 @@ class _MemberUserPageState extends State<MemberUserPage> {
   TextEditingController addressNoCtl = TextEditingController();
   TextEditingController passwordNoCtl = TextEditingController();
   TextEditingController confirmpasswordNoCtl = TextEditingController();
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   LatLng latLng = LatLng(15.998009549056942, 102.53815639596311);
   double latitude = 0.0;
@@ -321,77 +325,146 @@ class _MemberUserPageState extends State<MemberUserPage> {
     }
   }
 
+  // Future<void> _showMap() async {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) {
+  //       LatLng tempLatLng =
+  //           latLng; // เก็บพิกัดชั่วคราวสำหรับการอัปเดตภายใน dialog
+  //       return AlertDialog(
+  //         title: const Text('Map'),
+  //         content: SizedBox(
+  //           width: double.maxFinite,
+  //           height: 400,
+  //           child: StatefulBuilder(
+  //             builder: (context, setState) {
+  //               return FlutterMap(
+  //                 options: MapOptions(
+  //                   initialCenter:
+  //                       tempLatLng, // Set the initial center of the map
+  //                   initialZoom: 13.0, // Set the initial zoom level
+  //                   onTap: (tapPosition, point) {
+  //                     // Update coordinates when tapping on the map
+  //                     setState(() {
+  //                       tempLatLng = point; // อัปเดตค่าพิกัดชั่วคราวใน dialog
+  //                       latitude = point.latitude; // อัปเดต latitude
+  //                       longitude = point.longitude; // อัปเดต longitude
+  //                       _updateAddress(
+  //                           point); // เรียกใช้งานฟังก์ชันเพื่ออัปเดตที่อยู่
+  //                       log('Latitude: ${point.latitude}, Longitude: ${point.longitude}'); // Log ค่าใหม่
+  //                     });
+  //                   },
+  //                 ),
+  //                 children: [
+  //                   TileLayer(
+  //                     urlTemplate:
+  //                         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  //                     subdomains: ['a', 'b', 'c'],
+  //                   ),
+  //                   MarkerLayer(
+  //                     markers: [
+  //                       Marker(
+  //                         width: 80.0,
+  //                         height: 80.0,
+  //                         point: tempLatLng,
+  //                         child: const Icon(
+  //                           Icons.location_pin,
+  //                           color: Colors.red,
+  //                           size: 40.0,
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ],
+  //               );
+  //             },
+  //           ),
+  //         ),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () {
+  //               // อัปเดตค่าพิกัดสุดท้ายก่อนปิด dialog
+  //               setState(() {
+  //                 latLng = tempLatLng;
+  //               });
+  //               Navigator.of(context).pop();
+  //             },
+  //             child: const Text('Close'),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
   Future<void> _showMap() async {
-    showDialog(
-      context: context,
-      builder: (context) {
-        LatLng tempLatLng =
-            latLng; // เก็บพิกัดชั่วคราวสำหรับการอัปเดตภายใน dialog
-        return AlertDialog(
-          title: const Text('Map'),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 400,
-            child: StatefulBuilder(
-              builder: (context, setState) {
-                return FlutterMap(
-                  options: MapOptions(
-                    initialCenter:
-                        tempLatLng, // Set the initial center of the map
-                    initialZoom: 13.0, // Set the initial zoom level
-                    onTap: (tapPosition, point) {
-                      // Update coordinates when tapping on the map
-                      setState(() {
-                        tempLatLng = point; // อัปเดตค่าพิกัดชั่วคราวใน dialog
-                        latitude = point.latitude; // อัปเดต latitude
-                        longitude = point.longitude; // อัปเดต longitude
-                        _updateAddress(
-                            point); // เรียกใช้งานฟังก์ชันเพื่ออัปเดตที่อยู่
-                        log('Latitude: ${point.latitude}, Longitude: ${point.longitude}'); // Log ค่าใหม่
-                      });
-                    },
+  showDialog(
+    context: context,
+    builder: (context) {
+      LatLng tempLatLng = latLng; // ใช้ตำแหน่งอุปกรณ์เป็นค่าเริ่มต้น
+      return AlertDialog(
+        title: const Text('Map'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return FlutterMap(
+                options: MapOptions(
+                  initialCenter: tempLatLng, // ใช้ตำแหน่งอุปกรณ์
+                  initialZoom: 13.0,
+                  onTap: (tapPosition, point) {
+                    // อัปเดตค่าพิกัดเมื่อจิ้มบนแผนที่
+                    setState(() {
+                      tempLatLng = point;
+                      latitude = point.latitude;
+                      longitude = point.longitude;
+                      _updateAddress(point); // เรียกใช้งานฟังก์ชันเพื่ออัปเดตที่อยู่
+                      log('Latitude: ${point.latitude}, Longitude: ${point.longitude}');
+                    });
+                  },
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    subdomains: ['a', 'b', 'c'],
                   ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                      subdomains: ['a', 'b', 'c'],
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          width: 80.0,
-                          height: 80.0,
-                          point: tempLatLng,
-                          child: const Icon(
-                            Icons.location_pin,
-                            color: Colors.red,
-                            size: 40.0,
-                          ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        width: 80.0,
+                        height: 80.0,
+                        point: tempLatLng,
+                        child: const Icon(
+                          Icons.location_pin,
+                          color: Colors.red,
+                          size: 40.0,
                         ),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                // อัปเดตค่าพิกัดสุดท้ายก่อนปิด dialog
-                setState(() {
-                  latLng = tempLatLng;
-                });
-                Navigator.of(context).pop();
-              },
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // อัปเดตค่าพิกัดสุดท้ายก่อนปิด dialog
+              setState(() {
+                latLng = tempLatLng;
+              });
+              Navigator.of(context).pop();
+            },
+            child: const Text('Close'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   Future<void> _updateAddress(LatLng point) async {
     try {
@@ -458,101 +531,188 @@ class _MemberUserPageState extends State<MemberUserPage> {
         desiredAccuracy: LocationAccuracy.high);
   }
 
-  void register() async {
-    // รับค่าจาก controller และใช้ trim เพื่อลบช่องว่าง
-    String name = nameNoCtl.text.trim();
-    String phone = phoneNoCtl.text.trim();
-    String address = addressNoCtl.text.trim();
-    String password = passwordNoCtl.text.trim();
-    String confirmPassword = confirmpasswordNoCtl.text.trim();
+  // void register() async {
+  //   // รับค่าจาก controller และใช้ trim เพื่อลบช่องว่าง
+  //   String name = nameNoCtl.text.trim();
+  //   String phone = phoneNoCtl.text.trim();
+  //   String address = addressNoCtl.text.trim();
+  //   String password = passwordNoCtl.text.trim();
+  //   String confirmPassword = confirmpasswordNoCtl.text.trim();
 
-    if (passwordNoCtl.text != confirmpasswordNoCtl.text) {
-      Get.snackbar('Message Error !!!', 'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง ',
-          snackPosition: SnackPosition.TOP);
-    } else if (_imageUrl == null) {
-      // Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
-      //     snackPosition: SnackPosition.TOP);
-      const SnackBar(
-                content: Text(
-                    'เลือกสักรุปสิ 🤔.'));
-    } 
+  //   if (passwordNoCtl.text != confirmpasswordNoCtl.text) {
+  //     Get.snackbar('Message Error !!!', 'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง ',
+  //         snackPosition: SnackPosition.TOP);
+  //   } else if (_imageUrl == null) {
+  //     // Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
+  //     //     snackPosition: SnackPosition.TOP);
+  //     const SnackBar(
+  //               content: Text(
+  //                   'เลือกสักรุปสิ 🤔.'));
+  //   } 
     
-    if (password == confirmPassword &&
-        name.isNotEmpty &&
-        phone.isNotEmpty &&
-        address.isNotEmpty &&
-        password.isNotEmpty &&
-        phone.length == 10 && // เช็คเบอร์โทรศัพท์ต้องเป็น 10 ตัว
-        latitude != 0.0 && // เช็ค latitude
-        longitude != 0.0 && // เช็ค longitude
-        _imageUrl != null) {
-      // เช็คว่า image URL ถูกเซ็ตหรือไม่
+  //   if (password == confirmPassword &&
+  //       name.isNotEmpty &&
+  //       phone.isNotEmpty &&
+  //       address.isNotEmpty &&
+  //       password.isNotEmpty &&
+  //       phone.length == 10 && // เช็คเบอร์โทรศัพท์ต้องเป็น 10 ตัว
+  //       latitude != 0.0 && // เช็ค latitude
+  //       longitude != 0.0 && // เช็ค longitude
+  //       _imageUrl != null) {
+  //     // เช็คว่า image URL ถูกเซ็ตหรือไม่
 
-      log("data");
+  //     log("data");
 
-      // Log field values สำหรับการ debug
-      log('Name: $name');
-      log('Phone: $phone');
-      log('Address: $address');
-      log('Password: $password');
-      log('Latitude: $latitude');
-      log('Longitude: $longitude');
-      log('Image URL: $_imageUrl');
+  //     // Log field values สำหรับการ debug
+  //     log('Name: $name');
+  //     log('Phone: $phone');
+  //     log('Address: $address');
+  //     log('Password: $password');
+  //     log('Latitude: $latitude');
+  //     log('Longitude: $longitude');
+  //     log('Image URL: $_imageUrl');
 
-      // สร้าง instance ของ MemberRes
-      MemberRes req = MemberRes(
-        name: name,
-        password: password,
-        phone: phone,
-        address: address,
-        image: _imageUrl ?? "",
-        latitude: latitude,
-        longitude: longitude,
-      );
+  //     // สร้าง instance ของ MemberRes
+  //     MemberRes req = MemberRes(
+  //       name: name,
+  //       password: password,
+  //       phone: phone,
+  //       address: address,
+  //       image: _imageUrl ?? "",
+  //       latitude: latitude,
+  //       longitude: longitude,
+  //     );
 
-      try {
-        log("post");
-        // ทำการส่งคำขอ POST ไปยัง backend
-        final response = await http.post(
-          Uri.parse("$API_ENDPOINT/user/memberUser"),
-          headers: {"Content-Type": "application/json; charset=utf-8"},
-          body: memberResToJson(req),
-        );
+  //     try {
+  //       log("post");
+  //       // ทำการส่งคำขอ POST ไปยัง backend
+  //       final response = await http.post(
+  //         Uri.parse("$API_ENDPOINT/user/memberUser"),
+  //         headers: {"Content-Type": "application/json; charset=utf-8"},
+  //         body: memberResToJson(req),
+  //       );
 
-        // ตรวจสอบสถานะการตอบกลับ
-        if (response.statusCode == 200) {
-          log('User registered successfully: ${response.body}');
-          // นำทางไปยังหน้า home หากการสมัครสำเร็จ
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HomePage(),
-            ),
-          );
-        } else {
-          log('Failed to register user: ${response.body}');
-          // แสดงข้อผิดพลาดผ่าน SnackBar
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    'Registration failed I already have this phone number.')),
-          );
-        }
-      } catch (error) {
-        log('Error: $error');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error during registration: $error')),
-        );
-      }
-    } else {
-      // แสดงข้อผิดพลาดหากข้อมูลไม่ถูกต้อง
-      //  Get.snackbar('Message Error !!!', 'ใส่ข้อมูลไม่ครบ 🥹',
-      //       snackPosition: SnackPosition.TOP);
-      String errorMessage = 'Please fill all fields';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+  //       // ตรวจสอบสถานะการตอบกลับ
+  //       if (response.statusCode == 200) {
+  //         log('User registered successfully: ${response.body}');
+  //         // นำทางไปยังหน้า home หากการสมัครสำเร็จ
+  //         Navigator.pushReplacement(
+  //           context,
+  //           MaterialPageRoute(
+  //             builder: (context) => HomePage(),
+  //           ),
+  //         );
+  //       } else {
+  //         log('Failed to register user: ${response.body}');
+  //         // แสดงข้อผิดพลาดผ่าน SnackBar
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           const SnackBar(
+  //               content: Text(
+  //                   'Registration failed I already have this phone number.')),
+  //         );
+  //       }
+  //     } catch (error) {
+  //       log('Error: $error');
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Error during registration: $error')),
+  //       );
+  //     }
+  //   } else {
+  //     // แสดงข้อผิดพลาดหากข้อมูลไม่ถูกต้อง
+  //     //  Get.snackbar('Message Error !!!', 'ใส่ข้อมูลไม่ครบ 🥹',
+  //     //       snackPosition: SnackPosition.TOP);
+  //     String errorMessage = 'Please fill all fields';
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text(errorMessage)),
+  //     );
       
-    }
+  //   }
+  // }
+
+void register() async {
+  // รับค่าจาก controller และใช้ trim เพื่อลบช่องว่าง
+  String name = nameNoCtl.text.trim();
+  String phone = phoneNoCtl.text.trim();
+  String address = addressNoCtl.text.trim();
+  String password = passwordNoCtl.text.trim();
+  String confirmPassword = confirmpasswordNoCtl.text.trim();
+
+  if (password != confirmPassword) {
+    Get.snackbar('Message Error !!!', 'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง',
+        snackPosition: SnackPosition.TOP);
+  } else if (_imageUrl == null) {
+    const SnackBar(
+      content: Text('เลือกสักรุปสิ 🤔.'),
+    );
   }
+
+  if (password == confirmPassword &&
+      name.isNotEmpty &&
+      phone.isNotEmpty &&
+      address.isNotEmpty &&
+      password.isNotEmpty &&
+      phone.length == 10 && // เช็คเบอร์โทรศัพท์ต้องเป็น 10 ตัว
+      latitude != 0.0 && // เช็ค latitude
+      longitude != 0.0 && // เช็ค longitude
+      _imageUrl != null) {
+    // Log field values สำหรับการ debug
+    log('Name: $name');
+    log('Phone: $phone');
+    log('Address: $address');
+    log('Password: $password');
+    log('Latitude: $latitude');
+    log('Longitude: $longitude');
+    log('Image URL: $_imageUrl');
+
+    try {
+      // อ้างอิงถึง Collection "Users"
+      CollectionReference users = FirebaseFirestore.instance.collection('Users');
+
+      // ตรวจสอบว่าหมายเลขโทรศัพท์นี้มีอยู่แล้วหรือไม่
+      DocumentSnapshot existingUser = await users.doc(phone).get();
+      
+      if (existingUser.exists) {
+        // แสดงข้อผิดพลาดหากหมายเลขโทรศัพท์มีอยู่แล้ว
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This phone number is already registered.')),
+        );
+        return;
+      }
+
+      // เพิ่มข้อมูลไปยัง Firestore
+      // await users.doc(phone).set({
+      await users.add({
+        'name': name,
+        'phone': phone,
+        'address': address,
+        'password': password,
+        'image': _imageUrl,
+        'latitude': latitude,
+        'longitude': longitude,
+        'type': 'user',
+      });
+
+      log('User registered successfully in Firestore');
+      // นำทางไปยังหน้า home หากการสมัครสำเร็จ
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(),
+        ),
+      );
+    } catch (error) {
+      log('Error: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error during registration: $error')),
+      );
+    }
+  } else {
+    // แสดงข้อผิดพลาดหากข้อมูลไม่ถูกต้อง
+    String errorMessage = 'Please fill all fields';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(errorMessage)),
+    );
+  }
+}
+
 }

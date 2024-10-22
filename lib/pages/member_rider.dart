@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart'; // นำเข้า Firebase Storage
 import 'package:uuid/uuid.dart'; // ใช้สำหรับสร้าง UUID
 import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class memberRiderPage extends StatefulWidget {
   const memberRiderPage({super.key});
@@ -26,6 +27,7 @@ class _memberRiderPageState extends State<memberRiderPage> {
   TextEditingController vehicleNoCtl = TextEditingController();
   TextEditingController passwordNoCtl = TextEditingController();
   TextEditingController confirmpasswordNoCtl = TextEditingController();
+  bool isRegistering = false;
 
   MapController mapController = MapController();
 
@@ -183,19 +185,21 @@ class _memberRiderPageState extends State<memberRiderPage> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // ตรวจสอบฟอร์ม
-                      if (_formKey.currentState?.validate() ?? false) {
-                        // ถ้าผ่านการตรวจสอบ ให้ดำเนินการลงทะเบียน
-                        register();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('กรุณากรอกข้อมูลให้ครบถ้วน'),
-                          ),
-                        );
-                      }
-                    },
+                    onPressed: isRegistering
+                        ? null // ปิดการใช้งานปุ่มถ้า `isRegistering` เป็น true
+                        : () {
+                            // ตรวจสอบฟอร์ม
+                            if (_formKey.currentState?.validate() ?? false) {
+                              // ถ้าผ่านการตรวจสอบ ให้ดำเนินการลงทะเบียน
+                              register();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('กรุณากรอกข้อมูลให้ครบถ้วน'),
+                                ),
+                              );
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFEF702D),
                       padding: const EdgeInsets.symmetric(vertical: 15),
@@ -203,10 +207,15 @@ class _memberRiderPageState extends State<memberRiderPage> {
                         borderRadius: BorderRadius.all(Radius.circular(10)),
                       ),
                     ),
-                    child: const Text(
-                      'Sign up',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
+                    child: isRegistering
+                        ? const CircularProgressIndicator(
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          )
+                        : const Text(
+                            'Sign up',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
                   ),
                 ),
               ),
@@ -260,115 +269,223 @@ class _memberRiderPageState extends State<memberRiderPage> {
     }
   }
 
+  // void register() async {
+  //   // รับค่าจาก controller และใช้ trim เพื่อลบช่องว่าง
+  //   String name = nameNoCtl.text.trim();
+  //   String phone = phoneNoCtl.text.trim();
+  //   String vehicle = vehicleNoCtl.text.trim();
+  //   String password = passwordNoCtl.text.trim();
+  //   String confirmPassword = confirmpasswordNoCtl.text.trim();
+
+  //   if (passwordNoCtl.text != confirmpasswordNoCtl.text) {
+  //     // Get.snackbar('Message Error !!!', 'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง ',
+  //     //     snackPosition: SnackPosition.TOP);
+  //      const SnackBar(
+  //               content: Text(
+  //                   'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง.'));
+  //   } else if (_imageUrl == null) {
+  //     // Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
+  //     //     snackPosition: SnackPosition.TOP);
+  //      const SnackBar(
+  //               content: Text(
+  //                   'เลือกสักรุปสิ 🤔.'));
+  //   }
+
+  //   // ตรวจสอบว่ารหัสผ่านตรงกัน, เบอร์โทรศัพท์มีความยาว 10 หลัก และทุก field ไม่เป็นค่าว่างหรือ null
+  //   if (password == confirmPassword &&
+  //       name.isNotEmpty &&
+  //       phone.isNotEmpty &&
+  //       vehicle.isNotEmpty &&
+  //       password.isNotEmpty &&
+  //       _imageUrl != null) {
+  //     // ตรวจสอบเบอร์โทรศัพท์ว่ามีความยาว 10 หลักหรือไม่
+  //     if (phone.length != 10) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text('Phone number must be 10 digits long')),
+  //       );
+  //       return; // หยุดการทำงานถ้าเบอร์โทรไม่ถูกต้อง
+  //     }
+
+  //     log("data");
+
+  //     // Log field values สำหรับการ debug
+  //     log('Name: $name');
+  //     log('Phone: $phone');
+  //     log('Vehicle: $vehicle');
+  //     log('Password: $password');
+  //     log('Image URL: $_imageUrl');
+
+  //     // สร้าง instance ของ RiderRes
+  //     RiderRes req = RiderRes(
+  //       riderName: name,
+  //       riderPassword: password,
+  //       riderPhone: phone,
+  //       riderImage: _imageUrl ?? "",
+  //       vehicle: vehicle,
+  //     );
+
+  //     try {
+  //       log("post");
+  //       // ทำการส่งคำขอ POST ไปยัง backend
+  //       final response = await http.post(
+  //         Uri.parse("$API_ENDPOINT/rider/memberRider"),
+  //         headers: {"Content-Type": "application/json; charset=utf-8"},
+  //         body: riderResToJson(req),
+  //       );
+
+  //       // ตรวจสอบสถานะการตอบกลับ
+  //       if (response.statusCode == 200) {
+  //         log('User registered successfully: ${response.body}');
+  //         // นำทางไปยังหน้า home หากการสมัครสำเร็จ
+  //         Navigator.pushReplacement(
+  //           context,
+  //           MaterialPageRoute(
+  //             builder: (context) => HomePage(),
+  //           ),
+  //         );
+  //       } else {
+  //         log('Failed to register user: ${response.body}');
+  //         // แสดงข้อผิดพลาดผ่าน SnackBar
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           const SnackBar(
+  //               content: Text(
+  //                   'Registration failed I already have this phone number.')),
+  //         );
+  //       }
+  //     } catch (error) {
+  //       log('Error: $error');
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Error during registration: $error')),
+  //       );
+  //     }
+  //   } else {
+  //     // แสดงข้อผิดพลาดหากข้อมูลไม่ถูกต้อง
+
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('Please fill all fields'),
+  //       ),
+  //     );
+  //   }
+  // }
+
   void register() async {
-    // รับค่าจาก controller และใช้ trim เพื่อลบช่องว่าง
-    String name = nameNoCtl.text.trim();
-    String phone = phoneNoCtl.text.trim();
-    String vehicle = vehicleNoCtl.text.trim();
-    String password = passwordNoCtl.text.trim();
-    String confirmPassword = confirmpasswordNoCtl.text.trim();
+  setState(() {
+    isRegistering = true; // ปิดการใช้งานปุ่มเมื่อเริ่มการลงทะเบียน
+  });
 
-    if (passwordNoCtl.text != confirmpasswordNoCtl.text) {
-      // Get.snackbar('Message Error !!!', 'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง ',
-      //     snackPosition: SnackPosition.TOP);
-       const SnackBar(
-                content: Text(
-                    'รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง.'));
-    } else if (_imageUrl == null) {
-      // Get.snackbar('Message Error !!!', 'เลือกสักรุปสิ 🤔',
-      //     snackPosition: SnackPosition.TOP);
-       const SnackBar(
-                content: Text(
-                    'เลือกสักรุปสิ 🤔.'));
-    } 
-    //else if (name == null || name.isEmpty) {
-    //   Get.snackbar('Message Error !!!', 'ตั้งชื่อให้หน่อย 🥹',
-    //       snackPosition: SnackPosition.TOP);
-    // } else if (phone.length != 10) {
-    //   Get.snackbar(
-    //       'Message Error !!!', 'Phone number must be exactly 10 digits',
-    //       snackPosition: SnackPosition.TOP);
-    //   //errorMessage = 'Phone number must be exactly 10 digits';
-    // } else if (vehicle == null || vehicle.isEmpty) {
-    //   Get.snackbar('Message Error !!!', 'มีรถขับป่าว',
-    //       snackPosition: SnackPosition.TOP);
-    // }
+  // รับค่าจาก controller และใช้ trim เพื่อลบช่องว่าง
+  String name = nameNoCtl.text.trim();
+  String phone = phoneNoCtl.text.trim();
+  String vehicle = vehicleNoCtl.text.trim();
+  String password = passwordNoCtl.text.trim();
+  String confirmPassword = confirmpasswordNoCtl.text.trim();
 
-    // ตรวจสอบว่ารหัสผ่านตรงกัน, เบอร์โทรศัพท์มีความยาว 10 หลัก และทุก field ไม่เป็นค่าว่างหรือ null
-    if (password == confirmPassword &&
-        name.isNotEmpty &&
-        phone.isNotEmpty &&
-        vehicle.isNotEmpty &&
-        password.isNotEmpty &&
-        _imageUrl != null) {
-      // ตรวจสอบเบอร์โทรศัพท์ว่ามีความยาว 10 หลักหรือไม่
-      if (phone.length != 10) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Phone number must be 10 digits long')),
-        );
-        return; // หยุดการทำงานถ้าเบอร์โทรไม่ถูกต้อง
-      }
+  if (password != confirmPassword) {
+    // แสดง SnackBar ถ้ารหัสผ่านไม่ตรงกัน
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('รหัสผ่านไม่ถูกต้อง ลองใหม่อีกครั้ง.'),
+      ),
+    );
+    setState(() {
+      isRegistering = false; // เปิดการใช้งานปุ่มอีกครั้ง
+    });
+    return; // หยุดการทำงานถ้ารหัสผ่านไม่ตรงกัน
+  } else if (_imageUrl == null) {
+    // แสดง SnackBar ถ้าไม่มีการเลือกภาพ
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('เลือกสักรุปสิ 🤔.'),
+      ),
+    );
+    setState(() {
+      isRegistering = false; // เปิดการใช้งานปุ่มอีกครั้ง
+    });
+    return; // หยุดการทำงานถ้าไม่มีการเลือกภาพ
+  }
 
-      log("data");
-
-      // Log field values สำหรับการ debug
-      log('Name: $name');
-      log('Phone: $phone');
-      log('Vehicle: $vehicle');
-      log('Password: $password');
-      log('Image URL: $_imageUrl');
-
-      // สร้าง instance ของ RiderRes
-      RiderRes req = RiderRes(
-        riderName: name,
-        riderPassword: password,
-        riderPhone: phone,
-        riderImage: _imageUrl ?? "",
-        vehicle: vehicle,
-      );
-
-      try {
-        log("post");
-        // ทำการส่งคำขอ POST ไปยัง backend
-        final response = await http.post(
-          Uri.parse("$API_ENDPOINT/rider/memberRider"),
-          headers: {"Content-Type": "application/json; charset=utf-8"},
-          body: riderResToJson(req),
-        );
-
-        // ตรวจสอบสถานะการตอบกลับ
-        if (response.statusCode == 200) {
-          log('User registered successfully: ${response.body}');
-          // นำทางไปยังหน้า home หากการสมัครสำเร็จ
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HomePage(),
-            ),
-          );
-        } else {
-          log('Failed to register user: ${response.body}');
-          // แสดงข้อผิดพลาดผ่าน SnackBar
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text(
-                    'Registration failed I already have this phone number.')),
-          );
-        }
-      } catch (error) {
-        log('Error: $error');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error during registration: $error')),
-        );
-      }
-    } else {
-      // แสดงข้อผิดพลาดหากข้อมูลไม่ถูกต้อง
-
+  // ตรวจสอบว่ารหัสผ่านตรงกัน, เบอร์โทรศัพท์มีความยาว 10 หลัก และทุก field ไม่เป็นค่าว่างหรือ null
+  if (password == confirmPassword &&
+      name.isNotEmpty &&
+      phone.isNotEmpty &&
+      vehicle.isNotEmpty &&
+      _imageUrl != null) {
+    // ตรวจสอบเบอร์โทรศัพท์ว่ามีความยาว 10 หลักหรือไม่
+    if (phone.length != 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all fields'),
+        const SnackBar(content: Text('Phone number must be 10 digits long')),
+      );
+      setState(() {
+        isRegistering = false; // เปิดการใช้งานปุ่มอีกครั้ง
+      });
+      return; // หยุดการทำงานถ้าเบอร์โทรไม่ถูกต้อง
+    }
+
+    log("data");
+
+    // Log field values สำหรับการ debug
+    log('Name: $name');
+    log('Phone: $phone');
+    log('Vehicle: $vehicle');
+    log('Password: $password');
+    log('Image URL: $_imageUrl');
+
+    try {
+      // อ้างอิงถึง Collection "Users"
+      CollectionReference users =
+          FirebaseFirestore.instance.collection('Users');
+
+      // ตรวจสอบว่าหมายเลขโทรศัพท์นี้มีอยู่แล้วหรือไม่
+      DocumentSnapshot existingUser = await users.doc(phone).get();
+      
+      if (existingUser.exists) {
+        // แสดงข้อผิดพลาดหากหมายเลขโทรศัพท์มีอยู่แล้ว
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('หมายเลขโทรศัพท์นี้ถูกลงทะเบียนแล้ว.')),
+        );
+        setState(() {
+          isRegistering = false; // เปิดการใช้งานปุ่มอีกครั้ง
+        });
+        return;
+      }
+
+      // เพิ่มข้อมูลไปยัง Firestore โดยให้สร้าง Document ID เป็นหมายเลขโทรศัพท์
+      await users.doc(phone).set({
+        'name': name,
+        'phone': phone,
+        'vehicle': vehicle,
+        'password': password,
+        'image': _imageUrl,
+        'type': 'rider', // เพิ่มฟิลด์ type เป็น 'rider'
+      });
+
+      log('Rider registered successfully in Firestore');
+      // นำทางไปยังหน้า home หากการสมัครสำเร็จ
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(),
         ),
       );
+    } catch (error) {
+      log('Error: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error during registration: $error')),
+      );
     }
+  } else {
+    // แสดงข้อผิดพลาดหากข้อมูลไม่ถูกต้อง
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Please fill all fields'),
+      ),
+    );
   }
+
+  setState(() {
+    isRegistering = false; // เปิดการใช้งานปุ่มอีกครั้งหลังจากเสร็จสิ้น
+  });
+}
+
 }

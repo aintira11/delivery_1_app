@@ -4,46 +4,42 @@
 
 import 'dart:convert';
 
-List<DatariderRes> datariderResFromJson(String str) => List<DatariderRes>.from(json.decode(str).map((x) => DatariderRes.fromJson(x)));
+DatariderRes datariderResFromJson(String str) => DatariderRes.fromJson(json.decode(str));
 
-String datariderResToJson(List<DatariderRes> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
+String datariderResToJson(DatariderRes data) => json.encode(data.toJson());
 
 class DatariderRes {
-    int riderId;
-    String riderName;
-    String riderPassword;
-    String riderPhone;
-    String riderImage;
+    String image;
+    String password;
+    String phone;
+    String name;
+    String type;
     String vehicle;
-    String riderType;
 
     DatariderRes({
-        required this.riderId,
-        required this.riderName,
-        required this.riderPassword,
-        required this.riderPhone,
-        required this.riderImage,
+        required this.image,
+        required this.password,
+        required this.phone,
+        required this.name,
+        required this.type,
         required this.vehicle,
-        required this.riderType,
     });
 
     factory DatariderRes.fromJson(Map<String, dynamic> json) => DatariderRes(
-        riderId: json["rider_id"],
-        riderName: json["rider_name"],
-        riderPassword: json["rider_password"],
-        riderPhone: json["rider_phone"],
-        riderImage: json["rider_image"],
+        image: json["image"],
+        password: json["password"],
+        phone: json["phone"],
+        name: json["name"],
+        type: json["type"],
         vehicle: json["vehicle"],
-        riderType: json["rider_type"],
     );
 
     Map<String, dynamic> toJson() => {
-        "rider_id": riderId,
-        "rider_name": riderName,
-        "rider_password": riderPassword,
-        "rider_phone": riderPhone,
-        "rider_image": riderImage,
+        "image": image,
+        "password": password,
+        "phone": phone,
+        "name": name,
+        "type": type,
         "vehicle": vehicle,
-        "rider_type": riderType,
     };
 }

@@ -38,19 +38,19 @@ class _RiderHomePageState extends State<RiderHomePage> {
                       children: [
                         CircleAvatar(
                           backgroundImage:
-                              NetworkImage(rider.riderImage), // รูปภาพผู้ใช้
+                              NetworkImage(rider.image), // รูปภาพผู้ใช้
                         ),
                         const SizedBox(width: 10),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Name : ${rider.riderName}',
+                              'Name : ${rider.name}',
                               style: const TextStyle(
                                   color: Colors.white, fontSize: 14),
                             ),
                             Text(
-                              'Phone : ${rider.riderPhone}',
+                              'Phone : ${rider.phone}',
                               style: const TextStyle(
                                   color: Colors.white, fontSize: 14),
                             ),

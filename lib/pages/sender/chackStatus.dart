@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'dart:developer';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:delivery_1_app/config/shared/app_data.dart';
 import 'package:delivery_1_app/pages/sender/mapSender.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class CheckStatusPage extends StatefulWidget {
   const CheckStatusPage({super.key});
@@ -9,33 +14,83 @@ class CheckStatusPage extends StatefulWidget {
 }
 
 class _CheckStatusPageState extends State<CheckStatusPage> {
-  // ตัวอย่างข้อมูล JSON จำลอง
-  final List<Map<String, dynamic>> ordersJson = [
-    {
-      "name": "Lananima",
-      "phone": "0987456321",
-      "status": "ไรเดอร์รับงานแล้ว",
-      "imageUrls": [
-        "https://api2.krua.co/wp-content/uploads/2022/05/RT1719_ImageBanner_1140x507-4.jpg"
-      ],
-      "orderDetails": [
-        {"item": "ไข่พะโล้พี่เอ๋อ"}
-      ]
-    },
-    {
-      "name": "Shino",
-      "phone": "0555555555",
-      "status": "ไรเดอร์รับงานแล้ว",
-      "imageUrls": [
-        "https://api2.krua.co/wp-content/uploads/2022/05/RT1719_ImageBanner_1140x507-4.jpg",
-        "https://api2.krua.co/wp-content/uploads/2022/05/RT1719_ImageBanner_1140x507-4.jpg"
-      ],
-      "orderDetails": [
-        {"item": "ไก่ย่าง"},
-        {"item": "ส้มตำ"}
-      ]
+  late UserProfile user;
+
+  // List to store orders in JSON format
+  List<Map<String, dynamic>> ordersJson = [];
+
+  @override
+  void initState() {
+    super.initState();
+    user = context.read<AppData>().user;
+    fetchOrders(user.id);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    fetchOrders(user.id);
+  }
+
+  Future<void> fetchOrders(String senderId) async {
+    try {
+      QuerySnapshot ordersSnapshot = await FirebaseFirestore.instance
+          .collection('Orders')
+          .where('sender_id', isEqualTo: senderId)
+          .get();
+
+      List<Map<String, dynamic>> tempOrdersList = [];
+      for (var orderDoc in ordersSnapshot.docs) {
+        Map<String, dynamic> orderData =
+            orderDoc.data() as Map<String, dynamic>;
+
+        // Check if status_history is a List and find the status 'ไรด์เดอร์รับสินค้าแล้ว'
+        if (orderData['status_history'] is List) {
+          final statusHistory = orderData['status_history'] as List<dynamic>;
+
+          // Get the latest status from status_history
+          final latestStatus =
+              statusHistory.isNotEmpty ? statusHistory.last['status'] : '';
+
+          // Skip if the latest status is not 'ไรด์เดอร์รับสินค้าแล้ว'
+          if (latestStatus != 'ไรด์เดอร์รับสินค้าแล้ว') {
+            continue;
+          }
+        }
+
+        String receiverId = orderData['receiver_id'];
+        DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(receiverId)
+            .get();
+
+        List<Map<String, dynamic>> userDataList = [];
+        if (userSnapshot.exists) {
+          Map<String, dynamic> userData =
+              userSnapshot.data() as Map<String, dynamic>;
+          userDataList.add(userData);
+        }
+
+        Map<String, dynamic> orderWithUser = {
+          'order_id': orderDoc.id,
+          'order_details': orderData,
+          'receiver_info': userDataList,
+        };
+
+        tempOrdersList.add(orderWithUser);
+      }
+
+      setState(() {
+        ordersJson = tempOrdersList;
+      });
+
+      // Log the orders in JSON format
+      String jsonResult = jsonEncode(ordersJson);
+      log(jsonResult);
+    } catch (e) {
+      log('Error fetching data: $e');
     }
-  ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,43 +101,64 @@ class _CheckStatusPageState extends State<CheckStatusPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ListView.builder(
-          itemCount: ordersJson.length,
-          itemBuilder: (context, index) {
-            final order = ordersJson[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: OrderCard(
-                name: order["name"],
-                phone: order["phone"],
-                status: order["status"],
-                imageUrls: List<String>.from(order["imageUrls"]),
-                orderDetails: List<Map<String, dynamic>>.from(
-                    order["orderDetails"]), // Ensure correct type
+        child: ordersJson.isNotEmpty
+            ? ListView.builder(
+                itemCount: ordersJson.length,
+                itemBuilder: (context, index) {
+                  final order = ordersJson[index];
+                  final orderDetails = order["order_details"];
+                  final items = orderDetails['items'] as List<dynamic>;
+                  final imageUrlList = items
+                      .map((item) => item['image'])
+                      .toList()
+                      .cast<String>();
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: OrderCard(
+                      orderNumber: order['order_id'],
+                      name: order["receiver_info"][0]["name"],
+                      phone: order["receiver_info"][0]["phone"],
+                      address: order["receiver_info"][0]["address"],
+                      imageUrl: imageUrlList.isNotEmpty ? imageUrlList[0] : '',
+                      items: items
+                          .map((item) => item as Map<String, dynamic>)
+                          .toList(),
+                      status: orderDetails['current_status'] ?? 'รอการอัพเดท',
+                      statusHistory: orderDetails['status_history']
+                          as List<dynamic>?, // Pass the status_history
+                    ),
+                  );
+                },
+              )
+            : const Center(
+                child: Text('ไม่มีคำสั่งซื้อในขณะนี้'),
               ),
-            );
-          },
-        ),
       ),
     );
   }
 }
 
 class OrderCard extends StatelessWidget {
+  final String orderNumber;
   final String name;
   final String phone;
+  final String address;
+  final String imageUrl;
+  final List<Map<String, dynamic>> items;
   final String status;
-  final List<String> imageUrls;
-  final List<Map<String, dynamic>>
-      orderDetails; // Keep this as List<Map<String, dynamic>>
+  final List<dynamic>? statusHistory;
 
   const OrderCard({
     Key? key,
+    required this.orderNumber,
     required this.name,
     required this.phone,
+    required this.address,
+    required this.imageUrl,
+    required this.items,
     required this.status,
-    required this.imageUrls,
-    required this.orderDetails,
+    this.statusHistory,
   }) : super(key: key);
 
   @override
@@ -97,107 +173,121 @@ class OrderCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // แถวแรก: ชื่อและสถานะ
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Name: $name',
+                  'Order #: $orderNumber',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16.0,
                   ),
                 ),
-               
               ],
             ),
-
             const SizedBox(height: 8.0),
-            // เบอร์โทร
-            Text('Phone: $phone'),
-             
+            Text('Name: $name'),
+            Text('📞: $phone'),
+            Text('🏠 : $address'),
             const SizedBox(height: 8.0),
             const Divider(color: Colors.black),
-            // แถวที่สอง: รูปภาพสินค้า และเนื้อหา order
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start, // จัดให้เนื้อหาอยู่ในระดับบนสุด
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // รูปภาพในแนวนอน
+                  const Text(
+                    'Order Items:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13.0,
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
                   Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: imageUrls.map((url) {
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: items.map((item) {
+                      final imageUrl = item['image'] ?? '';
+                      final detail = item['detail'] ?? '';
+
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8.0),
-                          child: Image.network(
-                            url,
-                            height: 60,
-                            width: 60,
-                            fit: BoxFit.cover,
-                          ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8.0),
+                              child: Image.network(
+                                imageUrl,
+                                height: 60,
+                                width: 60,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            const SizedBox(width: 16.0),
+                            Expanded(
+                              child: Text(
+                                detail,
+                                style: const TextStyle(
+                                  fontSize: 14.0,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }).toList(),
                   ),
-                  const SizedBox(
-                      width: 16.0), // ระยะห่างระหว่างรูปภาพและเนื้อหา order
-
-                  // ข้อมูล order เรียงเป็นแนวตั้ง
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Order',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13.0,
-                          ),
-                        ),
-                        const SizedBox(height: 8.0),
-                        // แสดงรายละเอียดการสั่งซื้อ
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: orderDetails
-                              .map((detail) => Text(detail[
-                                  "item"])) // ใช้ map เพื่อแสดงชื่อรายการ
-                              .toList(),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
-            Text(
-                  'สถานะ: $status',
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
+            // Display all statuses from statusHistory
+            const Text(
+              'สถานะ:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13.0,
+              ),
+            ),
             const SizedBox(height: 8.0),
-            // ปุ่ม Status
+            statusHistory != null && statusHistory!.isNotEmpty
+                ? ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: statusHistory!.length,
+                    itemBuilder: (context, index) {
+                      return Text(
+                        '${statusHistory![index]['status']}',
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  )
+                : const Text(
+                    'ไม่มีสถานะ',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+            const SizedBox(height: 8.0),
             Center(
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const MapSenderPage()),
+                      builder: (context) => const MapSenderPage(),
+                    ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                   minimumSize: Size(double.infinity, 40),
+                  minimumSize: const Size(double.infinity, 40),
                   backgroundColor: const Color(0xFFFFA726),
                   shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(5),
-                )
+                    borderRadius: BorderRadius.circular(5),
+                  ),
                 ),
                 child: const Text('Status'),
               ),

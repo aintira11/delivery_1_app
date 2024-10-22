@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:delivery_1_app/config/shared/app_data.dart';
 import 'package:delivery_1_app/pages/login.dart';
 import 'package:delivery_1_app/pages/receiver/MainDrawerPage1.dart';
@@ -18,6 +20,7 @@ class _HomeUserPageState extends State<HomeUserPage> {
   void initState() {
     super.initState();
     user = context.read<AppData>().user;
+    log('UserProfile: ${user.toString()}');
   }
 
   @override

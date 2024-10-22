@@ -1,15 +1,16 @@
 // To parse this JSON data, do
 //
 //     final getUsersRes = getUsersResFromJson(jsonString);
-
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-List<GetUsersRes> getUsersResFromJson(String str) => List<GetUsersRes>.from(json.decode(str).map((x) => GetUsersRes.fromJson(x)));
+List<GetUsersRes> getUsersResFromQuerySnapshot(QuerySnapshot snapshot) =>
+    List<GetUsersRes>.from(snapshot.docs.map((doc) => GetUsersRes.fromJson(doc.data() as Map<String, dynamic>, doc.id)));
 
 String getUsersResToJson(List<GetUsersRes> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
 class GetUsersRes {
-    int userId;
+    String id;
     String name;
     String password;
     String phone;
@@ -17,10 +18,10 @@ class GetUsersRes {
     String image;
     double latitude;
     double longitude;
-    String userType;
+    String type;
 
     GetUsersRes({
-        required this.userId,
+        required this.id,
         required this.name,
         required this.password,
         required this.phone,
@@ -28,11 +29,11 @@ class GetUsersRes {
         required this.image,
         required this.latitude,
         required this.longitude,
-        required this.userType,
+        required this.type,
     });
 
-    factory GetUsersRes.fromJson(Map<String, dynamic> json) => GetUsersRes(
-        userId: json["user_id"],
+    factory GetUsersRes.fromJson(Map<String, dynamic> json, String docId) => GetUsersRes(
+        id: docId,
         name: json["name"],
         password: json["password"],
         phone: json["phone"],
@@ -40,11 +41,11 @@ class GetUsersRes {
         image: json["image"],
         latitude: json["latitude"]?.toDouble(),
         longitude: json["longitude"]?.toDouble(),
-        userType: json["user_type"],
+        type: json["type"],
     );
 
     Map<String, dynamic> toJson() => {
-        "user_id": userId,
+        "id": id,
         "name": name,
         "password": password,
         "phone": phone,
@@ -52,6 +53,6 @@ class GetUsersRes {
         "image": image,
         "latitude": latitude,
         "longitude": longitude,
-        "user_type": userType,
+        "type": type,
     };
 }

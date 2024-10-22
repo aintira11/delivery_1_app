@@ -9,7 +9,7 @@ GetDataOrderRes getDataOrderResFromJson(String str) => GetDataOrderRes.fromJson(
 String getDataOrderResToJson(GetDataOrderRes data) => json.encode(data.toJson());
 
 class GetDataOrderRes {
-    int orderId;
+    String orderId;
     List<Item> items;
 
     GetDataOrderRes({
@@ -29,10 +29,9 @@ class GetDataOrderRes {
 }
 
 class Item {
-    int orderId;
-    int senderId;
-    int receiverId;
-    int itemId;
+    String orderId;
+    String senderId;
+    String receiverId;
     String detail;
     String image;
 
@@ -40,7 +39,6 @@ class Item {
         required this.orderId,
         required this.senderId,
         required this.receiverId,
-        required this.itemId,
         required this.detail,
         required this.image,
     });
@@ -49,7 +47,6 @@ class Item {
         orderId: json["order_id"],
         senderId: json["sender_id"],
         receiverId: json["receiver_id"],
-        itemId: json["item_id"],
         detail: json["detail"],
         image: json["image"],
     );
@@ -58,7 +55,6 @@ class Item {
         "order_id": orderId,
         "sender_id": senderId,
         "receiver_id": receiverId,
-        "item_id": itemId,
         "detail": detail,
         "image": image,
     };

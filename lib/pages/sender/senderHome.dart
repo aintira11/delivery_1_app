@@ -1,10 +1,12 @@
 import 'dart:convert'; // สำหรับใช้ jsonDecode
 import 'dart:developer';
 import 'package:delivery_1_app/config/internal_config.dart';
+import 'package:delivery_1_app/pages/home_user.dart';
 import 'package:delivery_1_app/pages/model/Response/getUsers_res.dart';
 import 'package:delivery_1_app/pages/sender/product.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class senderHomaPage extends StatefulWidget {
   const senderHomaPage({super.key});
@@ -33,6 +35,15 @@ class _senderHomaPageState extends State<senderHomaPage> {
           'Sender',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () async {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeUserPage()),
+            );
+          },
+        ),
       ),
       body: FutureBuilder(
         future: loadData,
@@ -56,7 +67,8 @@ class _senderHomaPageState extends State<senderHomaPage> {
                         controller: phoneNoCtl,
                         onChanged: (value) {
                           if (value.length <= 10) {
-                            _searchUsers(phoneNoCtl.text);
+                            _searchUsers(
+                                value); // เรียกใช้ฟังก์ชันค้นหาตามข้อความที่ป้อน
                           }
                         },
                         keyboardType: TextInputType.phone,
@@ -128,7 +140,7 @@ class _senderHomaPageState extends State<senderHomaPage> {
                                         context,
                                         MaterialPageRoute(
                                             builder: (context) =>
-                                                 prodactPage(id: user.userId)),
+                                                prodactPage(id: user.id)),
                                       );
                                     },
                                   ),
@@ -150,66 +162,91 @@ class _senderHomaPageState extends State<senderHomaPage> {
     );
   }
 
+  // Future<void> getMember() async {
+  //   try {
+  //     final res = await http.get(
+  //       Uri.parse("$API_ENDPOINT/user/Getmember"),
+  //       headers: {"Content-Type": "application/json; charset=utf-8"},
+  //     );
+
+  //     if (res.statusCode == 200) {
+  //       final List<dynamic> data = jsonDecode(res.body);
+
+  //       List<GetUsersRes> allUsers = data.map((item) {
+  //         return GetUsersRes.fromJson(item);
+  //       }).toList();
+
+  //       setState(() {
+  //         users = allUsers;
+  //         _userNoResultMessage = allUsers.isEmpty ? "ไม่มีผู้ใช้ที่จะแสดง" : '';
+  //       });
+  //     } else {
+  //       print('Error fetching users: ${res.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     print('Error: $e');
+  //   }
+  // }
   Future<void> getMember() async {
     try {
-      final res = await http.get(
-        Uri.parse("$API_ENDPOINT/user/Getmember"),
-        headers: {"Content-Type": "application/json; charset=utf-8"},
-      );
+      // เข้าถึง collection "Users" และกรองด้วย type เป็น "user"
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .where('type', isEqualTo: 'user')
+          .get();
 
-      if (res.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(res.body);
+      // แปลงข้อมูลจากเอกสารใน QuerySnapshot เป็น List<GetUsersRes>
+      List<GetUsersRes> allUsers = getUsersResFromQuerySnapshot(querySnapshot);
 
-        List<GetUsersRes> allUsers = data.map((item) {
-          return GetUsersRes.fromJson(item);
-        }).toList();
-
-        setState(() {
-          users = allUsers;
-          _userNoResultMessage = allUsers.isEmpty ? "ไม่มีผู้ใช้ที่จะแสดง" : '';
-        });
-      } else {
-        print('Error fetching users: ${res.statusCode}');
-      }
+      setState(() {
+        users = allUsers; // กำหนด users ให้เป็น List<GetUsersRes>
+        log('data : $allUsers');
+        _userNoResultMessage = allUsers.isEmpty ? "ไม่มีผู้ใช้ที่จะแสดง" : '';
+      });
     } catch (e) {
+      log('Error fetching users: $e');
       print('Error: $e');
     }
   }
 
-  void _searchUsers(String phone) async {
-    if (phone.isEmpty) {
-      getMember();
+  void _searchUsers(String query) async {
+    // หากไม่มี query ให้ดึงข้อมูลผู้ใช้ทั้งหมด
+    if (query.isEmpty) {
+      getMember(); // เรียกฟังก์ชันดึงข้อมูลผู้ใช้ทั้งหมด
       return;
     }
 
     try {
-      final response = await http.get(
-        Uri.parse('$API_ENDPOINT/sender/search?phone=$phone'),
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-      );
+      // ดึงข้อมูลผู้ใช้ทั้งหมดจาก Firestore
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance.collection('Users').get();
 
-      if (response.statusCode == 200) {
-        log("JSON ที่ได้รับ: ${response.body}");
+      // กรองข้อมูลเบอร์โทรที่มีตัวเลขตาม query ที่ใส่
+      List<GetUsersRes> foundUsers = querySnapshot.docs
+          .map((doc) {
+            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-        final List<dynamic> result = jsonDecode(response.body);
-        List<GetUsersRes> foundUsers = result.map((item) {
-          return GetUsersRes.fromJson(item);
-        }).toList();
+            // ตรวจสอบว่ามีฟิลด์ 'phone' และไม่เป็น null
+            if (data.containsKey('phone') && data['phone'] is String) {
+              String phone = data['phone'];
 
-        // Log found users
-        log("Found Users: ${foundUsers.map((user) => user.name).toList()}");
+              // ค้นหา phone ว่ามีเลขที่ระบุใน query หรือไม่
+              if (phone.contains(query)) {
+                return GetUsersRes.fromJson(data, doc.id);
+              }
+            }
+            return null; // คืนค่า null ถ้าไม่ตรงเงื่อนไข
+          })
+          .where((user) => user != null) // กรองค่าที่เป็น null
+          .cast<GetUsersRes>()
+          .toList();
 
-        setState(() {
-          users = foundUsers;
-          _userNoResultMessage =
-              foundUsers.isEmpty ? "ไม่พบผู้ใช้ที่ค้นหา" : '';
-          log("Updated Users: ${users.map((user) => user.name).toList()}"); // Log updated users
-        });
-      } else {
-        log("เกิดข้อผิดพลาดในการเชื่อมต่อกับ API: ${response.statusCode}");
-      }
+      setState(() {
+        users = foundUsers; // อัปเดตรายการผู้ใช้ที่ค้นพบ
+        _userNoResultMessage = foundUsers.isEmpty ? "ไม่พบผู้ใช้ที่ค้นหา" : '';
+      });
+
+      log("Found Users: ${foundUsers.map((user) => user.name).toList()}");
     } catch (e) {
       log("เกิดข้อผิดพลาด: $e");
     }
