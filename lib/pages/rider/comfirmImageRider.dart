@@ -2,7 +2,7 @@ import 'dart:developer';
 
 import 'package:delivery_1_app/pages/rider/homeRider.dart';
 import 'package:flutter/material.dart';
-import 'package:delivery_1_app/pages/rider/mapRider.dart';
+
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -70,7 +70,7 @@ class _ImageConfirmPageState extends State<ImageConfirmPage> {
     } catch (e) {
       log('Error uploading image: $e');
     }
-    
+
   }
 
   @override

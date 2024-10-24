@@ -2,7 +2,6 @@ import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:delivery_1_app/config/shared/app_data.dart';
-import 'package:delivery_1_app/pages/rider/comfirmImageRider.dart';
 import 'package:delivery_1_app/pages/rider/homeRider.dart';
 import 'package:delivery_1_app/pages/rider/order.dart';
 import 'package:flutter/material.dart';

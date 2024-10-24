@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:delivery_1_app/config/internal_config.dart';
 import 'package:delivery_1_app/config/shared/app_data.dart';
 import 'package:delivery_1_app/pages/model/Response/getDataOrder_res.dart';
 import 'package:delivery_1_app/pages/model/Response/getUsers_res.dart';
@@ -12,7 +11,6 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:http/http.dart' as http;
 
 class ConfirmImagePage extends StatefulWidget {
   //final int id;

@@ -1,11 +1,11 @@
 import 'dart:convert'; // สำหรับใช้ jsonDecode
 import 'dart:developer';
-import 'package:delivery_1_app/config/internal_config.dart';
+//import 'package:delivery_1_app/config/internal_config.dart';
 import 'package:delivery_1_app/pages/home_user.dart';
 import 'package:delivery_1_app/pages/model/Response/getUsers_res.dart';
 import 'package:delivery_1_app/pages/sender/product.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+//import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class senderHomaPage extends StatefulWidget {
