@@ -30,16 +30,18 @@ class _MapSenderPageState extends State<MapSenderPage> {
             mapController: mapController,
             options: MapOptions(
               initialCenter: latLng1,
-              initialZoom: 16.0,
+              initialZoom: 17.0,
+              minZoom: 10.0,
+              maxZoom: 19.0,
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.app',
+                urlTemplate:
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}@2x.png',
+                subdomains: ['a', 'b', 'c'],
                 maxNativeZoom: 19,
-                // urlTemplate:
-                //           "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                //       subdomains: ['a', 'b', 'c'],
+                maxZoom: 19,
+                userAgentPackageName: 'com.example.app',
               ),
               MarkerLayer(
                 markers: [
@@ -225,9 +227,9 @@ class _MapSenderPageState extends State<MapSenderPage> {
     );
   }
 
-   void _showOrderDialogRider(BuildContext context) {
+  void _showOrderDialogRider(BuildContext context) {
     showDialog(
-     context: context,
+      context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: const Color(0xFFFFF3E0), // สีพื้นหลังป๊อปอัป
@@ -259,7 +261,9 @@ class _MapSenderPageState extends State<MapSenderPage> {
           content: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(height: 10,),
+              SizedBox(
+                height: 10,
+              ),
               CircleAvatar(
                 radius: 40,
                 backgroundImage: NetworkImage(
@@ -298,7 +302,10 @@ class _MapSenderPageState extends State<MapSenderPage> {
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: const Text('OK',style: TextStyle(color: Colors.white),),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ),
           ],

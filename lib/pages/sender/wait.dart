@@ -32,151 +32,80 @@ class _WaitRiderPageState extends State<WaitRiderPage> {
   }
 
   Future<void> fetchOrders(String senderId) async {
-  try {
-    QuerySnapshot ordersSnapshot = await FirebaseFirestore.instance
-        .collection('Orders')
-        .where('sender_id', isEqualTo: senderId)
-        .get();
-
-    List<Map<String, dynamic>> tempOrdersList = [];
-    for (var orderDoc in ordersSnapshot.docs) {
-      Map<String, dynamic> orderData = orderDoc.data() as Map<String, dynamic>;
-
-      // ตรวจสอบว่า status_history เป็น List และหาสถานะ 'รอไรด์เดอร์'
-      if (orderData['status_history'] is List) {
-        final statusHistory = orderData['status_history'] as List<dynamic>;
-
-        // ดึงสถานะล่าสุดจาก status_history
-        final latestStatus = statusHistory.isNotEmpty
-            ? statusHistory.last['status'] // เอาสถานะล่าสุดจากตัวสุดท้ายของอาร์เรย์
-            : '';
-
-        // หากสถานะล่าสุดไม่ใช่ 'รอไรด์เดอร์' ให้ข้าม
-        if (latestStatus != 'รอไรด์เดอร์') {
-          continue; // ข้ามคำสั่งนี้ถ้าไม่ใช่สถานะ 'รอไรด์เดอร์'
-        }
-
-        // แปลง timestamp เป็น String
-        for (var status in statusHistory) {
-          if (status['timestamp'] is Timestamp) {
-            status['timestamp'] =
-                (status['timestamp'] as Timestamp).toDate().toIso8601String();
-          }
-        }
-      }
-
-      String receiverId = orderData['receiver_id'];
-      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(receiverId)
+    try {
+      QuerySnapshot ordersSnapshot = await FirebaseFirestore.instance
+          .collection('Orders')
+          .where('sender_id', isEqualTo: senderId)
           .get();
 
-      List<Map<String, dynamic>> userDataList = [];
-      if (userSnapshot.exists) {
-        Map<String, dynamic> userData =
-            userSnapshot.data() as Map<String, dynamic>;
-        userDataList.add(userData);
+      List<Map<String, dynamic>> tempOrdersList = [];
+      for (var orderDoc in ordersSnapshot.docs) {
+        Map<String, dynamic> orderData =
+            orderDoc.data() as Map<String, dynamic>;
+
+        // ตรวจสอบว่า status_history เป็น List และหาสถานะ 'รอไรด์เดอร์'
+        if (orderData['status_history'] is List) {
+          final statusHistory = orderData['status_history'] as List<dynamic>;
+
+          // ดึงสถานะล่าสุดจาก status_history
+          final latestStatus = statusHistory.isNotEmpty
+              ? statusHistory
+                  .last['status'] // เอาสถานะล่าสุดจากตัวสุดท้ายของอาร์เรย์
+              : '';
+
+          // หากสถานะล่าสุดไม่ใช่ 'รอไรด์เดอร์' ให้ข้าม
+          if (latestStatus != 'รอไรด์เดอร์') {
+            continue; // ข้ามคำสั่งนี้ถ้าไม่ใช่สถานะ 'รอไรด์เดอร์'
+          }
+
+          // แปลง timestamp เป็น String
+          for (var status in statusHistory) {
+            if (status['timestamp'] is Timestamp) {
+              status['timestamp'] =
+                  (status['timestamp'] as Timestamp).toDate().toIso8601String();
+            }
+          }
+        }
+
+        String receiverId = orderData['receiver_id'];
+        DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(receiverId)
+            .get();
+
+        List<Map<String, dynamic>> userDataList = [];
+        if (userSnapshot.exists) {
+          Map<String, dynamic> userData =
+              userSnapshot.data() as Map<String, dynamic>;
+          userDataList.add(userData);
+        }
+
+        Map<String, dynamic> orderWithUser = {
+          'order_id': orderDoc.id,
+          'order_details': {
+            'receiver_id': orderData['receiver_id'],
+            'status_history': orderData['status_history'],
+            'current_status': orderData['current_status'],
+            'image_url_1': orderData['image_url_1'],
+            'items': orderData['items'],
+          },
+          'receiver_info': userDataList,
+        };
+
+        tempOrdersList.add(orderWithUser);
       }
 
-      Map<String, dynamic> orderWithUser = {
-        'order_id': orderDoc.id,
-        'order_details': {
-          'receiver_id': orderData['receiver_id'],
-          'status_history': orderData['status_history'],
-          'current_status': orderData['current_status'],
-          'image_url_1': orderData['image_url_1'],
-          'items': orderData['items'],
-        },
-        'receiver_info': userDataList,
-      };
+      setState(() {
+        ordersList = tempOrdersList; // อัปเดตตัวแปร
+      });
 
-      tempOrdersList.add(orderWithUser);
+      // แสดงข้อมูลออกมาในรูปแบบ JSON
+      String jsonResult = jsonEncode(ordersList);
+      log(jsonResult);
+    } catch (e) {
+      log('Error fetching data: $e');
     }
-
-    setState(() {
-      ordersList = tempOrdersList; // อัปเดตตัวแปร
-    });
-
-    // แสดงข้อมูลออกมาในรูปแบบ JSON
-    String jsonResult = jsonEncode(ordersList);
-    log(jsonResult);
-  } catch (e) {
-    log('Error fetching data: $e');
   }
-}
-
-
-// Future<void> fetchOrders(String senderId) async {
-//   try {
-//     // ดึงข้อมูลทั้งหมดจาก collection Orders ของ sender_id ที่กำหนด
-//     QuerySnapshot ordersSnapshot = await FirebaseFirestore.instance
-//         .collection('Orders')
-//         .where('sender_id', isEqualTo: senderId)
-//         .get();
-
-//     List<Map<String, dynamic>> ordersList = [];
-//     for (var orderDoc in ordersSnapshot.docs) {
-//       Map<String, dynamic> orderData = orderDoc.data() as Map<String, dynamic>;
-
-//       // แสดง orderData ใน log
-//       log('Order Data: ${jsonEncode(orderData)}');
-
-//       // ตรวจสอบว่า status_history เป็น List
-//       if (orderData['status_history'] is List) {
-//         // แปลง Timestamp เป็น String ใน status_history
-//         for (var status in orderData['status_history']) {
-//           log('Status: ${jsonEncode(status)}'); // แสดงข้อมูล status
-
-//           if (status['timestamp'] is Timestamp) {
-//             status['timestamp'] = (status['timestamp'] as Timestamp).toDate().toIso8601String();
-//           }
-//         }
-//       } else {
-//         log('status_history is not a List: ${orderData['status_history']}');
-//       }
-
-//       // ดึง receiver_id จาก order
-//       String receiverId = orderData['receiver_id'];
-
-//       // ดึงข้อมูลจาก collection Users โดยใช้ receiver_id
-//       DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-//           .collection('Users')
-//           .doc(receiverId)
-//           .get();
-
-//       List<Map<String, dynamic>> userDataList = [];
-//       if (userSnapshot.exists) {
-//         Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
-//         userDataList.add(userData); // เพิ่มข้อมูลลูกค้าเข้าไปใน array
-//       } else {
-//         log('User not found for receiverId: $receiverId');
-//       }
-
-//       // สร้าง JSON สำหรับ order ที่รวมข้อมูลผู้ใช้
-//       Map<String, dynamic> orderWithUser = {
-//         'order_id': orderDoc.id,
-//         'order_details': {
-//           'receiver_id': orderData['receiver_id'],
-//           'status_history': orderData['status_history'],
-//           'current_status': orderData['current_status'], // เพิ่มข้อมูลสถานะปัจจุบัน
-//           'image_url_1': orderData['image_url_1'],
-//           'items': orderData['items'],
-//         },
-//         'receiver_info': userDataList, // เก็บข้อมูลลูกค้าเป็น array
-//       };
-
-//       ordersList.add(orderWithUser);
-
-//     }
-
-//     // แสดงข้อมูลออกมาในรูปแบบ JSON
-//     String jsonResult = jsonEncode(ordersList);
-
-//     log(jsonResult);
-//   } catch (e) {
-//     log('Error fetching data: $e');
-//   }
-// }
 
   @override
   Widget build(BuildContext context) {
@@ -204,7 +133,10 @@ class _WaitRiderPageState extends State<WaitRiderPage> {
             orderNumber: order['order_id'],
             name: receiverInfo['name'] ?? 'Unknown',
             phone: receiverInfo['phone'] ?? 'Unknown',
-            imageUrl: items.isNotEmpty ? items[0]['image'] : '',
+            imageUrl: order['order_details']['status_history'].isNotEmpty
+                ? order['order_details']['status_history'][0]['image_url_1'] ??
+                    ''
+                : '', // ส่ง image_url_1
             items: items
                 .map((e) => e as Map<String, dynamic>)
                 .toList(), // ส่ง items เป็น List<Map<String, dynamic>>
@@ -277,12 +209,18 @@ class OrderCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Image.network(
-                      imageUrl,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                    ),
+                    imageUrl.isNotEmpty
+                        ? Image.network(
+                            imageUrl,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          )
+                        : const SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: Icon(Icons.image_not_supported),
+                          ),
                     const SizedBox(width: 16.0),
                     Expanded(
                       child: Column(

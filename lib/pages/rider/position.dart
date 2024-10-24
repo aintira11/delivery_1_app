@@ -1,19 +1,47 @@
 import 'package:delivery_1_app/pages/rider/homeRider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 class positionPage extends StatefulWidget {
-  const positionPage({super.key});
+  final User sender;
+  final User receiver;
+  const positionPage({super.key, required this.sender, required this.receiver});
 
   @override
   State<positionPage> createState() => _positionPageState();
 }
 
 class _positionPageState extends State<positionPage> {
-  LatLng latLng1 =
-      const LatLng(15.998009549056942, 102.53815639596311); // จุดแรก
+  // กำหนดพิกัดสำหรับผู้ส่งและผู้รับ
+  late LatLng senderLatLng;
+  late LatLng receiverLatLng;
+  LatLng? riderLatLng; // พิกัดของไรเดอร์
+
   MapController mapController = MapController();
+  @override
+  void initState() {
+    super.initState();
+    // ใช้พิกัดจริงจากผู้ส่งและผู้รับ
+    senderLatLng = LatLng(widget.sender.latitude, widget.sender.longitude);
+    receiverLatLng =
+        LatLng(widget.receiver.latitude, widget.receiver.longitude);
+    _determineRiderPosition();
+  }
+
+  Future<void> _determineRiderPosition() async {
+  try {
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    setState(() {
+      riderLatLng = LatLng(position.latitude, position.longitude);
+    });
+  } catch (e) {
+    print('Error determining rider position: $e');
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -34,11 +62,10 @@ class _positionPageState extends State<positionPage> {
       ),
       body: Stack(
         children: [
-          // แผนที่
           FlutterMap(
             mapController: mapController,
             options: MapOptions(
-              initialCenter: latLng1,
+              initialCenter: senderLatLng,
               initialZoom: 16.0,
             ),
             children: [
@@ -49,9 +76,9 @@ class _positionPageState extends State<positionPage> {
               ),
               MarkerLayer(
                 markers: [
-                  // Marker จุดแรก
+                  // Marker ผู้ส่ง
                   Marker(
-                    point: latLng1,
+                    point: senderLatLng,
                     width: 40,
                     height: 40,
                     child: const Icon(
@@ -59,8 +86,30 @@ class _positionPageState extends State<positionPage> {
                       size: 40,
                       color: Colors.red,
                     ),
-                    alignment: Alignment.center,
                   ),
+                  // Marker ผู้รับ
+                  Marker(
+                    point: receiverLatLng,
+                    width: 40,
+                    height: 40,
+                    child: const Icon(
+                      Icons.location_pin,
+                      size: 40,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  // Marker ตำแหน่งปัจจุบันของไรเดอร์ (ถ้ามี)
+                  if (riderLatLng != null)
+                    Marker(
+                      point: riderLatLng!,
+                      width: 40,
+                      height: 40,
+                      child: const Icon(
+                        Icons.directions_bike,
+                        size: 40,
+                        color: Colors.green,
+                      ),
+                    ),
                 ],
               ),
             ],
@@ -70,7 +119,6 @@ class _positionPageState extends State<positionPage> {
             left: 0,
             right: 0,
             bottom: 0,
-            
             child: Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
@@ -99,16 +147,49 @@ class _positionPageState extends State<positionPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.location_pin,
+                        color: Colors.red, // ตั้งค่าให้ไอคอนเป็นสีแดง
+                        size: 20, // ขนาดของไอคอน
+                      ),
+                      SizedBox(width: 8), // เว้นระยะห่างระหว่างไอคอนกับข้อความ
+                      Text(
+                        'Sender Location',
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
                   Text(
-                    'Lat: ${latLng1.latitude} , Lng: ${latLng1.longitude}',
+                    'ตำแหน่ง : ${widget.sender.address}',
                     style: const TextStyle(
                       fontSize: 16,
                     ),
                   ),
-                  
                   const SizedBox(height: 8),
-                  const Text(
-                    'ตำแหน่ง: อำเภอเมือง, จังหวัดขอนแก่น, ประเทศไทย',
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.location_pin,
+                        color: Color.fromARGB(
+                            255, 54, 120, 244), // ตั้งค่าให้ไอคอนเป็นสีฟ้า
+                        size: 20, // ขนาดของไอคอน
+                      ),
+                      SizedBox(
+                          width: 8), // เว้นระยะห่างระหว่างไอคอนกับข้อความ
+                      Text(
+                        'receiver Location',
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'ตำแหน่ง: ${widget.receiver.address}',
                     style: TextStyle(fontSize: 16),
                   ),
                 ],

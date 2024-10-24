@@ -674,14 +674,14 @@ void register() async {
       if (existingUser.exists) {
         // แสดงข้อผิดพลาดหากหมายเลขโทรศัพท์มีอยู่แล้ว
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This phone number is already registered.')),
+          const SnackBar(content: Text('หมายเลขโทรศัพท์นี้ถูกลงทะเบียนแล้ว.')),
         );
         return;
       }
 
       // เพิ่มข้อมูลไปยัง Firestore
-      // await users.doc(phone).set({
-      await users.add({
+        await users.doc(phone).set({
+     // await users.add({
         'name': name,
         'phone': phone,
         'address': address,

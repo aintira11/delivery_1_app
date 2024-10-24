@@ -12,6 +12,7 @@ import 'package:uuid/uuid.dart';
 
 class ImageConfirmPage extends StatefulWidget {
   const ImageConfirmPage({super.key});
+  
 
   @override
   State<ImageConfirmPage> createState() => _ImageConfirmPageState();
@@ -20,6 +21,7 @@ class ImageConfirmPage extends StatefulWidget {
 class _ImageConfirmPageState extends State<ImageConfirmPage> {
   File? _image;
   String? _firebaseFileName;
+ // String? _imageUrl;
 
   // ฟังก์ชันเลือกภาพจากกล้อง
   Future<void> _pickImage() async {
@@ -68,6 +70,7 @@ class _ImageConfirmPageState extends State<ImageConfirmPage> {
     } catch (e) {
       log('Error uploading image: $e');
     }
+    
   }
 
   @override

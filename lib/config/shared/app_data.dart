@@ -1,10 +1,13 @@
 //import 'dart:nativewrappers/_internal/vm/lib/core_patch.dart';
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 class AppData with ChangeNotifier {
   UserProfile _user = UserProfile();
   UserProfile get user => _user; // getter สำหรับข้อมูลผู้ใช้
+  StreamSubscription? listener;
 
   RiderProfile _rider = RiderProfile();
   RiderProfile get rider => _rider; // getter สำหรับข้อมูลผู้ขับขี่
